@@ -33,7 +33,7 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
 
 1. **Repository'yi Klonlayın**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ufakraki/opion_crm.git
    cd opion_crm
    ```
 
@@ -82,7 +82,7 @@ Bu proje başka bir bilgisayarda çalıştırılmak istendiğinde aşağıdaki a
 
 2. **Repository'yi Klonlayın**:
    ```bash
-   git clone https://github.com/your-username/opion_crm.git
+   git clone https://github.com/ufakraki/opion_crm.git
    cd opion_crm
    ```
 
