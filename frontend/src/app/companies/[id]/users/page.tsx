@@ -29,10 +29,16 @@ export default function CompanyUsersPage() {
   const router = useRouter()
   const params = useParams()
   const companyId = params.id as string
-
   useEffect(() => {
     checkUserAndLoadUsers()
   }, [])
+
+  // Company admin can only create company users
+  useEffect(() => {
+    if (profile?.role === 'company_admin') {
+      setUserType('company_user')
+    }
+  }, [profile])
 
   const checkUserAndLoadUsers = async () => {
     try {
@@ -52,11 +58,14 @@ export default function CompanyUsersPage() {
         console.error('Profile error:', profileError)
         return
       }
+        setProfile(profileData)
       
-      setProfile(profileData)
-      
-      // Only super admin can access this page
-      if (profileData?.role !== 'super_admin') {
+      // Super admin or company admin of this company can access this page
+      if (profileData?.role === 'super_admin') {
+        // Super admin can access any company's users
+      } else if (profileData?.role === 'company_admin' && profileData?.company_id === companyId) {
+        // Company admin can only access their own company's users
+      } else {
         router.push('/dashboard')
         return
       }
@@ -80,16 +89,26 @@ export default function CompanyUsersPage() {
       console.error('Error loading users:', error)
     }
   }
-
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     
     setCreating(true)
     try {
-      const { data, error } = await createCompanyAdmin({
-        ...formData,
-        company_id: companyId
-      })
+      let result;
+      
+      if (userType === 'company_admin') {
+        result = await createCompanyAdmin({
+          ...formData,
+          company_id: companyId
+        })
+      } else {
+        result = await createCompanyUser({
+          ...formData,
+          company_id: companyId
+        })
+      }
+      
+      const { data, error } = result
       
       if (error) throw error
       
@@ -141,22 +160,35 @@ export default function CompanyUsersPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 flex justify-between items-center">
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">        <div className="mb-6 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Kullanıcılar</h2>
           <Button
             onClick={() => setShowCreateForm(true)}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            + Company Admin Oluştur
+            + Kullanıcı Oluştur
           </Button>
         </div>
 
-        {/* Create Form */}
-        {showCreateForm && (
+        {/* Create Form */}        {showCreateForm && (
           <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h3 className="text-lg font-semibold mb-4">Yeni Company Admin Oluştur</h3>
+            <h3 className="text-lg font-semibold mb-4">Yeni Kullanıcı Oluştur</h3>
             <form onSubmit={handleCreateUser} className="space-y-4">
+              {profile?.role === 'super_admin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Kullanıcı Tipi
+                  </label>
+                  <select
+                    value={userType}
+                    onChange={(e) => setUserType(e.target.value as 'company_admin' | 'company_user')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="company_admin">Şirket Yöneticisi</option>
+                    <option value="company_user">Şirket Kullanıcısı</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email

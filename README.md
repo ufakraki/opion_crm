@@ -50,8 +50,8 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
 4. **Ortam Değişkenleri**:
    - `frontend` dizininde `.env.local` dosyasında Supabase için ortam değişkenlerinizi yapılandırın.
    ```bash
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_URL=https://kvsrkxcybabblilhvycr.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c3JreGN5YmFiYmxpbGh2eWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0NTM0MDgsImV4cCI6MjA2NjAyOTQwOH0.wNcgKZl01CChmQFBfNTmp2tERKxsKet8YzwsrNW_5RY
    ```
 
 5. **Uygulamayı Çalıştırın**:
@@ -103,8 +103,8 @@ Bu proje başka bir bilgisayarda çalıştırılmak istendiğinde aşağıdaki a
    `frontend` klasöründe `.env.local` dosyası oluşturun:
    ```bash
    # .env.local dosyası oluşturun
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_URL=https://kvsrkxcybabblilhvycr.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2c3JreGN5YmFiYmxpbGh2eWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0NTM0MDgsImV4cCI6MjA2NjAyOTQwOH0.wNcgKZl01CChmQFBfNTmp2tERKxsKet8YzwsrNW_5RY
    ```
 
 5. **Geliştirme Sunucusunu Başlatın**:
