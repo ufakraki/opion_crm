@@ -288,3 +288,26 @@ export const createCompanyUser = async (userData: {
         return { data: null, error };
     }
 };
+
+// Delete User (for Company Admin and Super Admin)
+export const deleteUser = async (userId: string) => {
+    try {
+        // Delete from profiles table (this will prevent login)
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+
+        if (profileError) {
+            console.error('Profile deletion error:', profileError);
+            return { error: profileError };
+        }
+
+        // Note: Auth user will remain in auth.users table
+        // This is fine as profile is the main check for user existence
+        console.log('User profile deleted successfully');
+        return { error: null };
+    } catch (error) {
+        console.error('Unexpected error in deleteUser:', error);        return { error };
+    }
+};

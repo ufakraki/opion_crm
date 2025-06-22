@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getCurrentUser, getUserProfile, getCompanyUsers, createCompanyAdmin, createCompanyUser } from '@/utils/supabase'
+import { getCurrentUser, getUserProfile, getCompanyUsers, createCompanyAdmin, createCompanyUser, deleteUser } from '@/utils/supabase'
 import { Button } from '@/components/ui/button'
 
 interface User {
@@ -111,15 +111,33 @@ export default function CompanyUsersPage() {
       const { data, error } = result
       
       if (error) throw error
-      
-      await loadUsers()
+        await loadUsers()
       setFormData({ email: '', password: '', full_name: '' })
       setShowCreateForm(false)
-      alert('Company Admin başarıyla oluşturuldu!')    } catch (error: any) {
+      alert('Kullanıcı başarıyla oluşturuldu!')
+    } catch (error: any) {
       console.error('Error creating user:', error)
       alert('Kullanıcı oluşturulamadı: ' + (error?.message || 'Bilinmeyen hata'))
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`"${userName}" kullanıcısını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+      return
+    }
+    
+    try {
+      const { error } = await deleteUser(userId)
+      
+      if (error) throw error
+      
+      await loadUsers()
+      alert('Kullanıcı başarıyla silindi!')
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      alert('Kullanıcı silinemedi: ' + (error?.message || 'Bilinmeyen hata'))
     }
   }
 
@@ -259,8 +277,7 @@ export default function CompanyUsersPage() {
             ) : (
               users.map((user) => (
                 <li key={user.id} className="px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-center justify-between">                    <div>
                       <h3 className="text-lg font-medium text-gray-900">
                         {user.full_name}
                       </h3>
@@ -268,6 +285,15 @@ export default function CompanyUsersPage() {
                       <p className="text-sm text-gray-500">
                         Role: {user.role} • Oluşturulma: {new Date(user.created_at).toLocaleDateString('tr-TR')}
                       </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleDeleteUser(user.id, user.full_name)}
+                        className="text-red-600 border-red-600 hover:bg-red-50"
+                      >
+                        Sil
+                      </Button>
                     </div>
                   </div>
                 </li>
