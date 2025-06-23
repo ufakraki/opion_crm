@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { supabase } from '@/utils/supabase'
+import { supabase, getCustomerCompanies, getCustomerCompaniesStats, CustomerCompany } from '@/utils/supabase'
 
 export default function CustomersPage() {
   const router = useRouter()
   const params = useParams()
   const companyId = params.id
-
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
-
+  const [customers, setCustomers] = useState<CustomerCompany[]>([])
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, attending: 0 })
   useEffect(() => {
     async function getProfile() {
       try {
@@ -28,6 +28,11 @@ export default function CustomersPage() {
           .single()
 
         setProfile(profileData)
+        
+        // Profile yüklendikten sonra customer verilerini getir
+        if (profileData && companyId) {
+          await fetchCustomerData(companyId as string)
+        }
       } catch (error) {
         console.error('Error fetching profile:', error)
       } finally {
@@ -36,7 +41,36 @@ export default function CustomersPage() {
     }
 
     getProfile()
-  }, [router])
+  }, [router, companyId])
+
+  // Customer verilerini getir
+  async function fetchCustomerData(companyId: string) {
+    try {
+      console.log('🔄 Fetching customer data for company:', companyId)
+      
+      // Customer companies ve stats'ı paralel olarak getir
+      const [customersResult, statsResult] = await Promise.all([
+        getCustomerCompanies(companyId),
+        getCustomerCompaniesStats(companyId)
+      ])
+      
+      if (customersResult.error) {
+        console.error('❌ Error fetching customers:', customersResult.error)
+      } else {
+        console.log('✅ Customers fetched successfully:', customersResult.data)
+        setCustomers(customersResult.data)
+      }
+      
+      if (statsResult.error) {
+        console.error('❌ Error fetching stats:', statsResult.error)
+      } else {
+        console.log('✅ Stats fetched successfully:', statsResult)
+        setStats(statsResult)
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error fetching customer data:', error)
+    }
+  }
 
   if (loading) {
     return (
@@ -84,10 +118,9 @@ export default function CustomersPage() {
                 <p className="text-xs sm:text-sm text-gray-500">Müşteri firmalarınızı yönetin</p>
               </div>
             </div>
-            
-            {/* Breadcrumb */}
+              {/* Breadcrumb */}
             <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-              Dashboard → Firma Kartları
+              Dashboard → Firma Kartları {companyId && `(${companyId.toString().slice(0, 8)}...)`}
             </div>
           </div>
         </div>
@@ -137,17 +170,16 @@ export default function CustomersPage() {
 
           {/* Lista Container */}
           <div className="bg-white rounded-lg shadow">
-            
-            {/* Stats Bar */}
+              {/* Stats Bar */}
             <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Toplam: 0 firma kartı</span>
+                  <span className="font-medium">Toplam: {stats.total} firma kartı</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>🟢 Aktif: 0</span>
-                  <span>🔴 Pasif: 0</span>
-                  <span>📋 Takipte: 0</span>
+                  <span>🟢 Satış Yapıldı: {stats.active}</span>
+                  <span>🔴 Satış Yapılmadı: {stats.inactive}</span>
+                  <span>📋 Fuara Katılacak: {stats.attending}</span>
                 </div>
               </div>
             </div>

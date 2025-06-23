@@ -367,3 +367,234 @@ export const checkEmailConflict = async (email: string) => {
         return { exists: false, error: error };
     }
 };
+
+// ========================
+// CUSTOMER COMPANIES (FIRMA KARTLARI) TYPES & FUNCTIONS
+// ========================
+
+// TypeScript interface for Customer Company
+export interface CustomerCompany {
+    id?: string;
+    name: string;
+    sector?: string;
+    phone?: string;
+    email?: string;
+    contact_person?: string;
+    website?: string;
+    notes?: string;
+    sales_made?: boolean;
+    not_attending_fair?: boolean;
+    attending_fair?: boolean;
+    assigned_user_id?: string;
+    created_by?: string;
+    company_id: string;
+    last_contact_date?: string;
+    next_reminder_date?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Create customer company
+export const createCustomerCompany = async (customerData: CustomerCompany) => {
+    try {
+        console.log('Creating customer company with data:', customerData);
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .insert([{
+                ...customerData,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }])
+            .select();
+            
+        if (error) {
+            console.error('Error creating customer company:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Customer company created successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error creating customer company:', error);
+        return { data: null, error };
+    }
+};
+
+// Get customer companies for a specific company
+export const getCustomerCompanies = async (companyId: string) => {
+    try {
+        console.log('Fetching customer companies for company:', companyId);
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .select(`
+                *,
+                assigned_user:assigned_user_id(id, full_name, email),
+                creator:created_by(id, full_name, email)
+            `)
+            .eq('company_id', companyId)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.error('Error fetching customer companies:', error);
+            return { data: [], error };
+        }
+        
+        console.log(`Found ${data?.length || 0} customer companies`);
+        return { data: data || [], error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching customer companies:', error);
+        return { data: [], error };
+    }
+};
+
+// Update customer company
+export const updateCustomerCompany = async (id: string, updateData: Partial<CustomerCompany>) => {
+    try {
+        console.log('Updating customer company:', id, updateData);
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select();
+            
+        if (error) {
+            console.error('Error updating customer company:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Customer company updated successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error updating customer company:', error);
+        return { data: null, error };
+    }
+};
+
+// Delete customer company
+export const deleteCustomerCompany = async (id: string) => {
+    try {
+        console.log('Deleting customer company:', id);
+        
+        const { error } = await supabase
+            .from('customer_companies')
+            .delete()
+            .eq('id', id);
+            
+        if (error) {
+            console.error('Error deleting customer company:', error);
+            return { error };
+        }
+        
+        console.log('Customer company deleted successfully');
+        return { error: null };
+    } catch (error) {
+        console.error('Unexpected error deleting customer company:', error);
+        return { error };
+    }
+};
+
+// Get single customer company by ID
+export const getCustomerCompanyById = async (id: string) => {
+    try {
+        console.log('Fetching customer company by ID:', id);
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .select(`
+                *,
+                assigned_user:assigned_user_id(id, full_name, email),
+                creator:created_by(id, full_name, email)
+            `)
+            .eq('id', id)
+            .single();
+            
+        if (error) {
+            console.error('Error fetching customer company by ID:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Customer company found:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching customer company by ID:', error);
+        return { data: null, error };
+    }
+};
+
+// Search customer companies
+export const searchCustomerCompanies = async (companyId: string, searchTerm: string) => {
+    try {
+        console.log('Searching customer companies:', { companyId, searchTerm });
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .select(`
+                *,
+                assigned_user:assigned_user_id(id, full_name, email),
+                creator:created_by(id, full_name, email)
+            `)
+            .eq('company_id', companyId)
+            .or(`name.ilike.%${searchTerm}%,sector.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.error('Error searching customer companies:', error);
+            return { data: [], error };
+        }
+        
+        console.log(`Found ${data?.length || 0} customer companies matching search`);
+        return { data: data || [], error: null };
+    } catch (error) {
+        console.error('Unexpected error searching customer companies:', error);
+        return { data: [], error };
+    }
+};
+
+// Get customer companies stats
+export const getCustomerCompaniesStats = async (companyId: string) => {
+    try {
+        console.log('Fetching customer companies stats for company:', companyId);
+        
+        const { data, error } = await supabase
+            .from('customer_companies')
+            .select('sales_made, attending_fair')
+            .eq('company_id', companyId);
+            
+        if (error) {
+            console.error('Error fetching stats:', error);
+            return { 
+                total: 0, 
+                active: 0, 
+                inactive: 0, 
+                attending: 0,
+                error 
+            };
+        }
+        
+        const stats = {
+            total: data?.length || 0,
+            active: data?.filter(item => item.sales_made === true).length || 0,
+            inactive: data?.filter(item => item.sales_made === false).length || 0,
+            attending: data?.filter(item => item.attending_fair === true).length || 0,
+            error: null
+        };
+        
+        console.log('Customer companies stats:', stats);
+        return stats;
+    } catch (error) {
+        console.error('Unexpected error fetching stats:', error);
+        return { 
+            total: 0, 
+            active: 0, 
+            inactive: 0, 
+            attending: 0,
+            error 
+        };
+    }
+};
