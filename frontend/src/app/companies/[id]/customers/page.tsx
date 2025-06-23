@@ -68,57 +68,137 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">      {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 gap-4">
             <div className="flex items-center">
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="mr-4 text-gray-400 hover:text-gray-600"
+                className="mr-4 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 ← Geri
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Firma Kartları</h1>
-                <p className="text-sm text-gray-500">Müşteri firmalarınızı yönetin</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Firma Kartları</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Müşteri firmalarınızı yönetin</p>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Şirket: {companyId}
+            
+            {/* Breadcrumb */}
+            <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+              Dashboard → Firma Kartları
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Main Content */}
+      </div>      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-center py-12">
-              <div className="mx-auto h-24 w-24 text-gray-400 mb-4">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m0 0H9m11 0a2 2 0 01-2 2H7a2 2 0 01-2-2m2-2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10a2 2 0 002 2m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2z" />
+          
+          {/* Search & Actions Bar */}
+          <div className="bg-white rounded-lg shadow mb-6 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+              
+              {/* Search Box */}
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Firma adı, sektör veya telefon ile arama yapın..."
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    disabled
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">(Arama özelliği yakında aktif olacak)</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button 
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+                  disabled
+                >
+                  + Yeni Firma Kartı
+                </button>
+                <button 
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+                  disabled
+                >
+                  📊 İstatistikler
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista Container */}
+          <div className="bg-white rounded-lg shadow">
+            
+            {/* Stats Bar */}
+            <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Toplam: 0 firma kartı</span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>🟢 Aktif: 0</span>
+                  <span>🔴 Pasif: 0</span>
+                  <span>📋 Takipte: 0</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Empty State */}
+            <div className="text-center py-12 px-4 sm:px-6">
+              <div className="mx-auto h-20 w-20 sm:h-24 sm:w-24 text-gray-400 mb-6">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m0 0H9m11 0a2 2 0 01-2 2H7a2 2 0 01-2-2m2-2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10a2 2 0 002 2m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Henüz firma kartı bulunmamaktadır
+              
+              <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">
+                İlk firma kartınızı oluşturun
               </h3>
-              <p className="text-gray-500 mb-6">
-                İlk firma kartınızı oluşturmak için aşağıdaki butona tıklayın.
+              <p className="text-gray-500 mb-6 max-w-md mx-auto text-sm sm:text-base">
+                Müşteri firmalarınızı takip etmek, notlar almak ve hatırlatıcılar oluşturmak için firma kartları kullanın.
               </p>
               
-              {/* Adım 2'de bu buton çalışacak */}
-              <button 
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-                disabled
-              >
-                + Yeni Firma Kartı Oluştur
-              </button>
-              <p className="text-xs text-gray-400 mt-2">
-                (Yakında aktif olacak)
-              </p>
+              <div className="space-y-4">
+                {/* Main CTA Button */}
+                <button 
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                  disabled
+                >
+                  🏢 İlk Firma Kartımı Oluştur
+                </button>
+                
+                {/* Feature Preview */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 max-w-2xl mx-auto">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl mb-2">📊</div>
+                    <h4 className="font-medium text-gray-900 text-sm">İstatistikler</h4>
+                    <p className="text-xs text-gray-500">Satış ve takip verileri</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl mb-2">🔔</div>
+                    <h4 className="font-medium text-gray-900 text-sm">Hatırlatıcılar</h4>
+                    <p className="text-xs text-gray-500">Otomatik takip sistemi</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl mb-2">📱</div>
+                    <h4 className="font-medium text-gray-900 text-sm">Mobil Uyumlu</h4>
+                    <p className="text-xs text-gray-500">Heryerde erişilebilir</p>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-400 mt-6">
+                  💡 İpucu: Firma kartları oluşturma özelliği Adım 6'da aktif olacak
+                </p>
+              </div>
             </div>
           </div>
         </div>
