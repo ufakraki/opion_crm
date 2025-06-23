@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { supabase, getCustomerCompanies, getCustomerCompaniesStats, createCustomerCompany, CustomerCompany } from '@/utils/supabase'
+import { 
+  supabase, 
+  getCustomerCompanies, 
+  getCustomerCompaniesStats, 
+  createCustomerCompany, 
+  CustomerCompany 
+} from '../../../../utils/supabase'
 
 export default function CustomersPage() {
   const router = useRouter()
@@ -423,12 +429,21 @@ export default function CustomersPage() {
                               📝 {customer.notes}
                             </p>
                           </div>
-                        )}
-
-                        {/* Last Contact Date */}
+                        )}                        {/* Last Contact Date */}
                         {customer.last_contact_date && (
                           <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
                             Son İletişim: {new Date(customer.last_contact_date).toLocaleDateString('tr-TR')}
+                          </div>
+                        )}
+                          {/* Assigned User */}
+                        {customer.assigned_user && (
+                          <div className="pt-2 border-t border-gray-100">
+                            <div className="flex items-center text-sm text-gray-600">
+                              <span className="w-5 text-gray-400">👨‍💼</span>
+                              <span className="ml-2 font-medium">
+                                @{customer.assigned_user.username}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>

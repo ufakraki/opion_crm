@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
@@ -385,21 +385,41 @@ export interface CustomerCompany {
     notes?: string;
     sales_made?: boolean;
     not_attending_fair?: boolean;
-    attending_fair?: boolean;
+    attending_fair?: boolean | null;
     assigned_user_id?: string;
     created_by?: string;
     company_id: string;
     last_contact_date?: string;
     next_reminder_date?: string;
     created_at?: string;
-    updated_at?: string;
+    updated_at?: string;    // Join edilen alanlar
+    assigned_user?: {
+        id: string;
+        full_name: string;
+        email: string;
+        username: string;
+    };
+    creator?: {
+        id: string;
+        full_name: string;
+        email: string;
+        username: string;
+    };
 }
 
 // Create customer company
 export const createCustomerCompany = async (customerData: CustomerCompany) => {
     try {
         console.log('Creating customer company with data:', customerData);
-          // Data'yı temizle ve gerekli alanları hazırla
+        
+        // Mevcut kullanıcıyı getir
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            console.error('Error getting current user:', userError);
+            return { data: null, error: userError || new Error('User not found') };
+        }
+        
+        // Data'yı temizle ve gerekli alanları hazırla
         const cleanData = {
             name: customerData.name,
             sector: customerData.sector || null,
@@ -413,8 +433,9 @@ export const createCustomerCompany = async (customerData: CustomerCompany) => {
             not_attending_fair: customerData.not_attending_fair || false,
             attending_fair: customerData.attending_fair !== undefined ? customerData.attending_fair : null,
             company_id: customerData.company_id,
-            assigned_user_id: customerData.assigned_user_id || null,
-            created_by: customerData.created_by || null,
+            // Mevcut kullanıcıyı otomatik olarak ata
+            assigned_user_id: customerData.assigned_user_id || user.id,
+            created_by: customerData.created_by || user.id,
             last_contact_date: customerData.last_contact_date || null,
             next_reminder_date: customerData.next_reminder_date || null,
             created_at: new Date().toISOString(),
@@ -444,15 +465,13 @@ export const createCustomerCompany = async (customerData: CustomerCompany) => {
 
 // Get customer companies for a specific company
 export const getCustomerCompanies = async (companyId: string) => {
-    try {
-        console.log('Fetching customer companies for company:', companyId);
-        
-        const { data, error } = await supabase
+    try {        console.log('Fetching customer companies for company:', companyId);
+          const { data, error } = await supabase
             .from('customer_companies')
             .select(`
                 *,
-                assigned_user:assigned_user_id(id, full_name, email),
-                creator:created_by(id, full_name, email)
+                assigned_user:profiles!assigned_user_id(id, full_name, email, username),
+                creator:profiles!created_by(id, full_name, email, username)
             `)
             .eq('company_id', companyId)
             .order('created_at', { ascending: false });
@@ -524,13 +543,12 @@ export const deleteCustomerCompany = async (id: string) => {
 export const getCustomerCompanyById = async (id: string) => {
     try {
         console.log('Fetching customer company by ID:', id);
-        
-        const { data, error } = await supabase
+          const { data, error } = await supabase
             .from('customer_companies')
             .select(`
                 *,
-                assigned_user:assigned_user_id(id, full_name, email),
-                creator:created_by(id, full_name, email)
+                assigned_user:assigned_user_id(id, full_name, email, username),
+                creator:created_by(id, full_name, email, username)
             `)
             .eq('id', id)
             .single();
@@ -584,7 +602,7 @@ export const getCustomerCompaniesStats = async (companyId: string) => {
         
         const { data, error } = await supabase
             .from('customer_companies')
-            .select('attending_fair')
+            .select('attending_fair, not_attending_fair')
             .eq('company_id', companyId);
             
         if (error) {
