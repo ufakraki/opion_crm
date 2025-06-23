@@ -379,6 +379,7 @@ export interface CustomerCompany {
     sector?: string;
     phone?: string;
     email?: string;
+    address?: string;
     contact_person?: string;
     website?: string;
     notes?: string;
@@ -398,18 +399,38 @@ export interface CustomerCompany {
 export const createCustomerCompany = async (customerData: CustomerCompany) => {
     try {
         console.log('Creating customer company with data:', customerData);
+          // Data'yı temizle ve gerekli alanları hazırla
+        const cleanData = {
+            name: customerData.name,
+            sector: customerData.sector || null,
+            phone: customerData.phone || null,
+            email: customerData.email || null,
+            address: customerData.address || null,
+            contact_person: customerData.contact_person || null,
+            website: customerData.website || null,
+            notes: customerData.notes || null,
+            sales_made: customerData.sales_made || false,
+            not_attending_fair: customerData.not_attending_fair || false,
+            attending_fair: customerData.attending_fair !== undefined ? customerData.attending_fair : null,
+            company_id: customerData.company_id,
+            assigned_user_id: customerData.assigned_user_id || null,
+            created_by: customerData.created_by || null,
+            last_contact_date: customerData.last_contact_date || null,
+            next_reminder_date: customerData.next_reminder_date || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        console.log('Cleaned data for database:', cleanData);
         
         const { data, error } = await supabase
             .from('customer_companies')
-            .insert([{
-                ...customerData,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            }])
+            .insert([cleanData])
             .select();
             
         if (error) {
-            console.error('Error creating customer company:', error);
+            console.error('Supabase error creating customer company:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
             return { data: null, error };
         }
         
