@@ -12,8 +12,9 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [customers, setCustomers] = useState<CustomerCompany[]>([])
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, attending: 0 })
-    // Modal state
+  const [stats, setStats] = useState({ total: 0, attendingFair: 0, notAttendingFair: 0, underDiscussion: 0 })
+  
+  // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState({
@@ -25,7 +26,6 @@ export default function CustomersPage() {
     website: '',
     contact_person: '',
     notes: '',
-    sales_made: false,
     attending_fair: undefined as boolean | undefined
   })
 
@@ -83,7 +83,8 @@ export default function CustomersPage() {
       } else {
         console.log('✅ Stats fetched successfully:', statsResult)
         setStats(statsResult)
-      }    } catch (error) {
+      }
+    } catch (error) {
       console.error('❌ Unexpected error fetching customer data:', error)
     }
   }
@@ -99,7 +100,6 @@ export default function CustomersPage() {
       website: '',
       contact_person: '',
       notes: '',
-      sales_made: false,
       attending_fair: undefined
     })
   }
@@ -120,7 +120,8 @@ export default function CustomersPage() {
 
     try {
       console.log('🔄 Creating new customer with form data:', formData)
-        const customerData: CustomerCompany = {
+      
+      const customerData: CustomerCompany = {
         ...formData,
         company_id: companyId as string,
         attending_fair: formData.attending_fair // undefined, true, false olabilir
@@ -235,7 +236,8 @@ export default function CustomersPage() {
                 <p className="text-xs text-gray-400 mt-1">(Arama özelliği yakında aktif olacak)</p>
               </div>
 
-              {/* Action Buttons */}              <div className="flex flex-col sm:flex-row gap-2">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button 
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   onClick={() => setShowCreateModal(true)}
@@ -262,9 +264,9 @@ export default function CustomersPage() {
                   <span className="font-medium">Toplam: {stats.total} firma kartı</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>🟢 Satış Yapıldı: {stats.active}</span>
-                  <span>🔴 Satış Yapılmadı: {stats.inactive}</span>
-                  <span>📋 Fuara Katılacak: {stats.attending}</span>
+                  <span>🟢 Fuara Katılan Firma: {stats.attendingFair}</span>
+                  <span>🔴 Fuara Katılmayan Firma: {stats.notAttendingFair}</span>
+                  <span>💬 Görüşülen Firma: {stats.underDiscussion}</span>
                 </div>
               </div>
             </div>
@@ -287,7 +289,8 @@ export default function CustomersPage() {
                 </p>
                 
                 <div className="space-y-4">
-                  {/* Main CTA Button */}                  <button 
+                  {/* Main CTA Button */}
+                  <button 
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     onClick={() => setShowCreateModal(true)}
                   >
@@ -299,7 +302,7 @@ export default function CustomersPage() {
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <div className="text-2xl mb-2">📊</div>
                       <h4 className="font-medium text-gray-900 text-sm">İstatistikler</h4>
-                      <p className="text-xs text-gray-500">Satış ve takip verileri</p>
+                      <p className="text-xs text-gray-500">Fuar katılım verileri</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <div className="text-2xl mb-2">🔔</div>
@@ -314,7 +317,7 @@ export default function CustomersPage() {
                   </div>
                   
                   <p className="text-xs text-gray-400 mt-6">
-                    💡 İpucu: Firma kartları oluşturma özelliği Adım 6'da aktif olacak
+                    💡 İpucu: Firma kartları sistemi aktif durumda
                   </p>
                 </div>
               </div>
@@ -339,21 +342,22 @@ export default function CustomersPage() {
                               </p>
                             )}
                           </div>
-                            {/* Status Badges */}
+                          
+                          {/* Status Badges */}
                           <div className="flex flex-col gap-1 ml-4">
-                            {customer.sales_made && (
+                            {customer.attending_fair === true && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                ✅ Satış Yapıldı
+                                🟢 Fuara Katılacak
                               </span>
                             )}
                             {customer.attending_fair === false && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                ❌ Fuara Katılmıyor
+                                🔴 Fuara Katılmayacak
                               </span>
                             )}
-                            {customer.attending_fair === true && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                📅 Fuara Katılacak
+                            {(customer.attending_fair === null || customer.attending_fair === undefined) && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                💬 Görüşülüyor
                               </span>
                             )}
                           </div>
@@ -389,7 +393,8 @@ export default function CustomersPage() {
                               </a>
                             </div>
                           )}
-                            {customer.website && (
+                          
+                          {customer.website && (
                             <div className="flex items-center text-sm text-gray-600">
                               <span className="w-5 text-gray-400">🌐</span>
                               <a 
@@ -466,7 +471,8 @@ export default function CustomersPage() {
                 </div>
               </div>
             )}
-          </div>        </div>
+          </div>
+        </div>
       </main>
 
       {/* Create Customer Modal */}
@@ -584,7 +590,9 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Ad Soyad / Pozisyon"
                   />
-                </div>                {/* Adres */}
+                </div>
+
+                {/* Adres */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Adres
@@ -612,7 +620,9 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Bu firma hakkında notlar, hatırlatıcılar..."
                   />
-                </div>                {/* Checkboxes */}
+                </div>
+
+                {/* Checkboxes */}
                 <div className="md:col-span-2 space-y-2">
                   <div className="flex items-center">
                     <input

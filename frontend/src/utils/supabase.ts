@@ -584,25 +584,25 @@ export const getCustomerCompaniesStats = async (companyId: string) => {
         
         const { data, error } = await supabase
             .from('customer_companies')
-            .select('sales_made, attending_fair')
+            .select('attending_fair')
             .eq('company_id', companyId);
             
         if (error) {
             console.error('Error fetching stats:', error);
             return { 
                 total: 0, 
-                active: 0, 
-                inactive: 0, 
-                attending: 0,
+                attendingFair: 0, 
+                notAttendingFair: 0, 
+                underDiscussion: 0,
                 error 
             };
         }
         
         const stats = {
             total: data?.length || 0,
-            active: data?.filter(item => item.sales_made === true).length || 0,
-            inactive: data?.filter(item => item.sales_made === false).length || 0,
-            attending: data?.filter(item => item.attending_fair === true).length || 0,
+            attendingFair: data?.filter(item => item.attending_fair === true).length || 0,
+            notAttendingFair: data?.filter(item => item.attending_fair === false).length || 0,
+            underDiscussion: data?.filter(item => item.attending_fair === null || item.attending_fair === undefined).length || 0,
             error: null
         };
         
@@ -612,9 +612,9 @@ export const getCustomerCompaniesStats = async (companyId: string) => {
         console.error('Unexpected error fetching stats:', error);
         return { 
             total: 0, 
-            active: 0, 
-            inactive: 0, 
-            attending: 0,
+            attendingFair: 0, 
+            notAttendingFair: 0, 
+            underDiscussion: 0,
             error 
         };
     }
