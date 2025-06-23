@@ -292,7 +292,18 @@ export const createCompanyUser = async (userData: {
 // Delete User (for Company Admin and Super Admin)
 export const deleteUser = async (userId: string) => {
     try {
-        // Delete from profiles table (this will prevent login)
+        // First get user's email to check for conflicts
+        const { data: userData } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', userId)
+            .single();
+
+        if (!userData) {
+            return { error: { message: 'Kullanıcı bulunamadı' } };
+        }
+
+        // Delete from profiles table
         const { error: profileError } = await supabase
             .from('profiles')
             .delete()
@@ -303,11 +314,56 @@ export const deleteUser = async (userId: string) => {
             return { error: profileError };
         }
 
-        // Note: Auth user will remain in auth.users table
-        // This is fine as profile is the main check for user existence
+        // Try to delete from auth.users using admin API
+        // This requires service role key, but let's try with anon key
+        try {
+            const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+            if (authError) {
+                console.warn('Could not delete from auth.users (expected with anon key):', authError);
+                // This is expected with anon key, continue anyway
+            } else {
+                console.log('Successfully deleted from auth.users');
+            }
+        } catch (authDeleteError) {
+            console.warn('Auth delete failed (expected):', authDeleteError);
+            // This is expected, continue
+        }
+
         console.log('User profile deleted successfully');
         return { error: null };
     } catch (error) {
-        console.error('Unexpected error in deleteUser:', error);        return { error };
+        console.error('Unexpected error in deleteUser:', error);
+        return { error };
+    }
+};
+
+// Check if email exists in auth.users (for conflict detection)
+export const checkEmailConflict = async (email: string) => {
+    try {
+        // Try to sign up with the email to check if it exists
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: 'temp-password-check-123456' // Temporary password
+        });
+
+        if (error?.message === 'User already registered') {
+            return { exists: true, error: null };
+        }
+
+        // If signup succeeded, we need to clean up
+        if (data?.user && !error) {
+            // Try to delete the test user
+            try {
+                await supabase.auth.admin.deleteUser(data.user.id);
+            } catch (deleteError) {
+                console.warn('Could not delete test user:', deleteError);
+            }
+            return { exists: false, error: null };
+        }
+
+        return { exists: false, error: error };
+    } catch (error) {
+        console.error('Error checking email conflict:', error);
+        return { exists: false, error: error };
     }
 };

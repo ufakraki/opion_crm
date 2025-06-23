@@ -145,8 +145,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 )}
-                
-                {/* All Users - Firma Kartları */}
+                  {/* All Users - Firma Kartları */}
                 {(profile?.role === 'company_admin' || profile?.role === 'company_user') && (
                   <div className="bg-white p-6 rounded-lg shadow">
                     <h3 className="text-lg font-semibold mb-2">Firma Kartları</h3>
@@ -155,25 +154,12 @@ export default function DashboardPage() {
                     </p>
                     <Button 
                       className="mt-4 w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={() => router.push('/customer-companies')}
+                      onClick={() => router.push(`/companies/${profile.company_id}/customers`)}
                     >
                       Firma Kartlarını Görüntüle
                     </Button>
                   </div>
-                )}
-
-                {profile?.role !== 'super_admin' && (
-                  <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-2">Firma Kartları</h3>
-                    <p className="text-gray-600 text-sm">
-                      Müşteri firmalarınızı yönetin
-                    </p>
-                    <Button className="mt-4 w-full" disabled>
-                      Yakında Gelecek
-                    </Button>
-                  </div>
-                )}
-                
+                )}                
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-semibold mb-2">Hatırlatmalar</h3>
                   <p className="text-gray-600 text-sm">
