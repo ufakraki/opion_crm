@@ -7,6 +7,7 @@ import {
   getCustomerCompanies, 
   getCustomerCompaniesStats, 
   createCustomerCompany, 
+  getCompanyUsers,
   CustomerCompany 
 } from '../../../../utils/supabase'
 
@@ -14,14 +15,15 @@ export default function CustomersPage() {
   const router = useRouter()
   const params = useParams()
   const companyId = params.id
-  
-  const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [customers, setCustomers] = useState<CustomerCompany[]>([])
   const [stats, setStats] = useState({ total: 0, attendingFair: 0, notAttendingFair: 0, underDiscussion: 0 })
-  
-  // Modal state
+  const [companyUsers, setCompanyUsers] = useState<any[]>([])
+    // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerCompany | null>(null)
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -32,7 +34,8 @@ export default function CustomersPage() {
     website: '',
     contact_person: '',
     notes: '',
-    attending_fair: undefined as boolean | undefined
+    attending_fair: undefined as boolean | undefined,
+    assigned_user_id: '' // Company admin için kullanıcı seçimi
   })
 
   useEffect(() => {
@@ -51,10 +54,14 @@ export default function CustomersPage() {
           .single()
 
         setProfile(profileData)
-        
-        // Profile yüklendikten sonra customer verilerini getir
+          // Profile yüklendikten sonra customer verilerini getir
         if (profileData && companyId) {
           await fetchCustomerData(companyId as string)
+          
+          // Company admin ise kullanıcıları da getir
+          if (profileData.role === 'company_admin') {
+            await fetchCompanyUsers(companyId as string)
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -65,7 +72,6 @@ export default function CustomersPage() {
 
     getProfile()
   }, [router, companyId])
-
   // Customer verilerini getir
   async function fetchCustomerData(companyId: string) {
     try {
@@ -94,8 +100,27 @@ export default function CustomersPage() {
       console.error('❌ Unexpected error fetching customer data:', error)
     }
   }
-  
-  // Modal ve form fonksiyonları
+
+  // Company users'ı getir (sadece company admin için)
+  async function fetchCompanyUsers(companyId: string) {
+    try {
+      console.log('🔄 Fetching company users for company:', companyId)
+      
+      const result = await getCompanyUsers(companyId)
+      
+      if (result.error) {
+        console.error('❌ Error fetching company users:', result.error)
+      } else {
+        console.log('✅ Company users fetched successfully:', result.data)
+        // Sadece company_user rolündeki kullanıcıları filtrele
+        const companyUsersList = result.data?.filter(user => user.role === 'company_user') || []
+        setCompanyUsers(companyUsersList)
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error fetching company users:', error)
+    }
+  }
+    // Modal ve form fonksiyonları
   const resetForm = () => {
     setFormData({
       name: '',
@@ -106,7 +131,8 @@ export default function CustomersPage() {
       website: '',
       contact_person: '',
       notes: '',
-      attending_fair: undefined
+      attending_fair: undefined,
+      assigned_user_id: ''
     })
   }
 
@@ -126,11 +152,11 @@ export default function CustomersPage() {
 
     try {
       console.log('🔄 Creating new customer with form data:', formData)
-      
-      const customerData: CustomerCompany = {
+        const customerData: CustomerCompany = {
         ...formData,
         company_id: companyId as string,
-        attending_fair: formData.attending_fair // undefined, true, false olabilir
+        attending_fair: formData.attending_fair, // undefined, true, false olabilir
+        assigned_user_id: formData.assigned_user_id || undefined // Company admin seçimi varsa kullan
       }
 
       const result = await createCustomerCompany(customerData)
@@ -459,10 +485,12 @@ export default function CustomersPage() {
                           </div>
                           
                           {/* Right side - Action buttons */}
-                          <div className="flex space-x-2">
-                            <button 
-                              className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:text-gray-400"
-                              disabled
+                          <div className="flex space-x-2">                            <button 
+                              className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              onClick={() => {
+                                setSelectedCustomer(customer)
+                                setShowDetailModal(true)
+                              }}
                             >
                               👁️ Görüntüle
                             </button>
@@ -635,6 +663,49 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Bu firma hakkında notlar, hatırlatıcılar..."
                   />
+                </div>                {/* Atanan Kullanıcı Bilgisi */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Atanan Kullanıcı
+                  </label>
+                  
+                  {profile?.role === 'company_admin' ? (
+                    // Company Admin için dropdown
+                    <div className="space-y-2">
+                      <select
+                        name="assigned_user_id"
+                        value={formData.assigned_user_id}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Kullanıcı Seçin</option>
+                        {companyUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.full_name} (@{user.username})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500">
+                        {formData.assigned_user_id ? 
+                          'Seçilen kullanıcıya atanacak' : 
+                          'Kullanıcı seçilmezse otomatik olarak size atanacak'
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    // Company User için mevcut durum
+                    <div className="bg-gray-50 border border-gray-300 rounded-md px-3 py-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="w-5 text-gray-400">👨‍💼</span>
+                        <span className="ml-2 font-medium">
+                          {profile ? `${profile.full_name} (@${profile.username})` : 'Yükleniyor...'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Bu firma kartı otomatik olarak size atanacaktır
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Checkboxes */}
@@ -710,6 +781,201 @@ export default function CustomersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Detail Modal */}
+      {showDetailModal && selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Firma Kartı Detayları</h2>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false)
+                    setSelectedCustomer(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="px-6 py-4">
+              <div className="space-y-6">
+                
+                {/* Firma Bilgileri */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Firma Bilgileri</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Firma Adı</label>
+                      <div className="text-sm text-gray-900 font-medium">{selectedCustomer.name}</div>
+                    </div>
+                    
+                    {selectedCustomer.sector && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sektör</label>
+                        <div className="text-sm text-gray-600">{selectedCustomer.sector}</div>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.contact_person && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">İletişim Kişisi</label>
+                        <div className="text-sm text-gray-600">{selectedCustomer.contact_person}</div>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.phone && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                        <div className="text-sm text-gray-600">
+                          <a href={`tel:${selectedCustomer.phone}`} className="hover:text-blue-600 transition-colors">
+                            {selectedCustomer.phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.email && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <div className="text-sm text-gray-600">
+                          <a href={`mailto:${selectedCustomer.email}`} className="hover:text-blue-600 transition-colors">
+                            {selectedCustomer.email}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.website && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                        <div className="text-sm text-gray-600">
+                          <a 
+                            href={selectedCustomer.website.startsWith('http') ? selectedCustomer.website : `https://${selectedCustomer.website}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            {selectedCustomer.website}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {selectedCustomer.address && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
+                      <div className="text-sm text-gray-600">{selectedCustomer.address}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Durum ve Atama Bilgileri */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Durum ve Atama</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fuar Katılım Durumu</label>
+                      <div className="flex items-center">
+                        {selectedCustomer.attending_fair === true && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            🟢 Fuara Katılacak
+                          </span>
+                        )}
+                        {selectedCustomer.attending_fair === false && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            🔴 Fuara Katılmayacak
+                          </span>
+                        )}
+                        {(selectedCustomer.attending_fair === null || selectedCustomer.attending_fair === undefined) && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            💬 Görüşülüyor
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Atanan Kullanıcı</label>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="w-5 text-gray-400">👨‍💼</span>
+                        <span className="ml-2 font-medium">
+                          {selectedCustomer.assigned_user ? 
+                            `${selectedCustomer.assigned_user.full_name} (@${selectedCustomer.assigned_user.username})` : 
+                            'Atanmamış'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notlar */}
+                {selectedCustomer.notes && (
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Notlar</h3>
+                    <div className="bg-gray-50 rounded-md p-4">
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap">{selectedCustomer.notes}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tarih Bilgileri */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Tarih Bilgileri</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    
+                    {selectedCustomer.created_at && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Oluşturulma Tarihi</label>
+                        <div>{new Date(selectedCustomer.created_at).toLocaleDateString('tr-TR')} {new Date(selectedCustomer.created_at).toLocaleTimeString('tr-TR')}</div>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.last_contact_date && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Son İletişim Tarihi</label>
+                        <div>{new Date(selectedCustomer.last_contact_date).toLocaleDateString('tr-TR')}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 px-6 py-4">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false)
+                    setSelectedCustomer(null)
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Kapat
+                </button>
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                  disabled
+                >
+                  ✏️ Düzenle (Yakında)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
