@@ -8,26 +8,31 @@ import {
   getCustomerCompaniesStats, 
   createCustomerCompany, 
   getCompanyUsers,
-  CustomerCompany 
+  getSectors,
+  CustomerCompany,
+  Sector 
 } from '../../../../utils/supabase'
 
 export default function CustomersPage() {
   const router = useRouter()
   const params = useParams()
   const companyId = params.id
-    const [loading, setLoading] = useState(true)
+  
+  const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [customers, setCustomers] = useState<CustomerCompany[]>([])
   const [stats, setStats] = useState({ total: 0, attendingFair: 0, notAttendingFair: 0, underDiscussion: 0 })
   const [companyUsers, setCompanyUsers] = useState<any[]>([])
-    // Modal state
+  const [sectors, setSectors] = useState<Sector[]>([])
+  
+  // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerCompany | null>(null)
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    sector: '',
+    sector_id: '', // Sektör dropdown için
     phone: '',
     email: '',
     address: '',
@@ -57,11 +62,13 @@ export default function CustomersPage() {
           // Profile yüklendikten sonra customer verilerini getir
         if (profileData && companyId) {
           await fetchCustomerData(companyId as string)
-          
-          // Company admin ise kullanıcıları da getir
+            // Company admin ise kullanıcıları da getir
           if (profileData.role === 'company_admin') {
             await fetchCompanyUsers(companyId as string)
           }
+          
+          // Sektörleri getir
+          await fetchSectors(companyId as string)
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -100,7 +107,6 @@ export default function CustomersPage() {
       console.error('❌ Unexpected error fetching customer data:', error)
     }
   }
-
   // Company users'ı getir (sadece company admin için)
   async function fetchCompanyUsers(companyId: string) {
     try {
@@ -120,11 +126,29 @@ export default function CustomersPage() {
       console.error('❌ Unexpected error fetching company users:', error)
     }
   }
-    // Modal ve form fonksiyonları
+
+  // Sektörleri getir
+  async function fetchSectors(companyId: string) {
+    try {
+      console.log('🔄 Fetching sectors for company:', companyId)
+      
+      const result = await getSectors(companyId)
+      
+      if (result.error) {
+        console.error('❌ Error fetching sectors:', result.error)
+      } else {
+        console.log('✅ Sectors fetched successfully:', result.data)
+        setSectors(result.data)
+      }    } catch (error) {
+      console.error('❌ Unexpected error fetching sectors:', error)
+    }
+  }
+  
+  // Modal ve form fonksiyonları
   const resetForm = () => {
     setFormData({
       name: '',
-      sector: '',
+      sector_id: '',
       phone: '',
       email: '',
       address: '',
@@ -558,21 +582,24 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Örn: ABC Teknoloji Ltd. Şti."
                   />
-                </div>
-
-                {/* Sektör */}
+                </div>                {/* Sektör */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Sektör
                   </label>
-                  <input
-                    type="text"
-                    name="sector"
-                    value={formData.sector}
+                  <select
+                    name="sector_id"
+                    value={formData.sector_id}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Örn: Teknoloji, İnşaat, Sağlık"
-                  />
+                  >
+                    <option value="">Sektör Seçiniz</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Telefon */}
@@ -975,7 +1002,286 @@ export default function CustomersPage() {
                   ✏️ Düzenle (Yakında)
                 </button>
               </div>
+            </div>          </div>
+        </div>
+      )}
+
+      {/* Create Customer Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Yeni Firma Kartı Oluştur</h2>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false)
+                    resetForm()
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleCreateCustomer} className="px-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Firma Adı */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Firma Adı *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Örn: ABC Teknoloji Ltd. Şti."
+                  />
+                </div>
+
+                {/* Sektör Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sektör
+                  </label>
+                  <select
+                    name="sector_id"
+                    value={formData.sector_id}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Sektör Seçin</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {profile?.role === 'company_admin' ? 
+                      'Sektör yönetimi sayfasından yeni sektörler ekleyebilirsiniz' : 
+                      'Sektör listesi admin tarafından yönetilmektedir'
+                    }
+                  </p>
+                </div>
+
+                {/* Telefon */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefon
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="+90 (XXX) XXX-XXXX"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="info@firma.com"
+                  />
+                </div>
+
+                {/* Website */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Website
+                  </label>
+                  <input
+                    type="text"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="www.firma.com veya https://www.firma.com"
+                  />
+                </div>
+
+                {/* İletişim Kişisi */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    İletişim Kişisi
+                  </label>
+                  <input
+                    type="text"
+                    name="contact_person"
+                    value={formData.contact_person}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Ad Soyad / Pozisyon"
+                  />
+                </div>
+
+                {/* Adres */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Adres
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Şehir, Ülke veya tam adres (Örn: İstanbul, Türkiye)"
+                  />
+                </div>
+
+                {/* Notlar */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notlar
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Bu firma hakkında notlar, hatırlatıcılar..."
+                  />
+                </div>
+
+                {/* Atanan Kullanıcı Bilgisi */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Atanan Kullanıcı
+                  </label>
+                  
+                  {profile?.role === 'company_admin' ? (
+                    // Company Admin için dropdown
+                    <div className="space-y-2">
+                      <select
+                        name="assigned_user_id"
+                        value={formData.assigned_user_id}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Kullanıcı Seçin</option>
+                        {companyUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.full_name} (@{user.username})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500">
+                        {formData.assigned_user_id ? 
+                          'Seçilen kullanıcıya atanacak' : 
+                          'Kullanıcı seçilmezse otomatik olarak size atanacak'
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    // Company User için mevcut durum
+                    <div className="bg-gray-50 border border-gray-300 rounded-md px-3 py-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="w-5 text-gray-400">👨‍💼</span>
+                        <span className="ml-2 font-medium">
+                          {profile ? `${profile.full_name} (@${profile.username})` : 'Yükleniyor...'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Bu firma kartı otomatik olarak size atanacaktır
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkboxes */}
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="attending_fair"
+                      checked={formData.attending_fair === true}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({ ...prev, attending_fair: true }))
+                        } else {
+                          setFormData(prev => ({ ...prev, attending_fair: undefined }))
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label className="ml-2 text-sm text-gray-700">
+                      Firma Fuara Katılıyor
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="attending_fair"
+                      checked={formData.attending_fair === false}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({ ...prev, attending_fair: false }))
+                        } else {
+                          setFormData(prev => ({ ...prev, attending_fair: undefined }))
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label className="ml-2 text-sm text-gray-700">
+                      Firma Fuara Katılmıyor
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false)
+                    resetForm()
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  disabled={creating}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !formData.name.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {creating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Oluşturuluyor...
+                    </>
+                  ) : (
+                    <>
+                      🏢 Firma Kartı Oluştur
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

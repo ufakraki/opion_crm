@@ -125,25 +125,38 @@ export default function DashboardPage() {
                       Role: {profile?.role || 'loading...'} | Email: {user?.email}
                     </p>
                   </div>
-                )}
-
-                {/* Company Admin Controls */}
+                )}                {/* Company Admin Controls */}
                 {profile?.role === 'company_admin' && (
-                  <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-2">Kullanıcı Yönetimi</h3>
-                    <p className="text-gray-600 text-sm">
-                      Şirket kullanıcılarınızı yönetin
-                    </p>
-                    <Button 
-                      className="mt-4 w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => router.push(`/companies/${profile.company_id}/users`)}
-                    >
-                      Kullanıcıları Yönet
-                    </Button>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Role: {profile?.role} | Company: {profile?.company_id}
-                    </p>
-                  </div>
+                  <>
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Kullanıcı Yönetimi</h3>
+                      <p className="text-gray-600 text-sm">
+                        Şirket kullanıcılarınızı yönetin
+                      </p>
+                      <Button 
+                        className="mt-4 w-full bg-green-600 hover:bg-green-700"
+                        onClick={() => router.push(`/companies/${profile.company_id}/users`)}
+                      >
+                        Kullanıcıları Yönet
+                      </Button>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Role: {profile?.role} | Company: {profile?.company_id}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Sektör Yönetimi</h3>
+                      <p className="text-gray-600 text-sm">
+                        Firma kartları için sektörleri yönetin
+                      </p>
+                      <Button 
+                        className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => router.push(`/companies/${profile.company_id}/sectors`)}
+                      >
+                        Sektörleri Yönet
+                      </Button>
+                    </div>
+                  </>
                 )}
                   {/* All Users - Firma Kartları */}
                 {(profile?.role === 'company_admin' || profile?.role === 'company_user') && (

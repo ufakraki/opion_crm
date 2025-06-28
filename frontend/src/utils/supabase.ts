@@ -369,6 +369,131 @@ export const checkEmailConflict = async (email: string) => {
 };
 
 // ========================
+// SECTORS MANAGEMENT
+// ========================
+
+// TypeScript interface for Sector
+export interface Sector {
+    id?: string;
+    name: string;
+    company_id: string;
+    created_by?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Get sectors for a specific company
+export const getSectors = async (companyId: string) => {
+    try {
+        console.log('Fetching sectors for company:', companyId);
+        
+        const { data, error } = await supabase
+            .from('sectors')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+            
+        if (error) {
+            console.error('Error fetching sectors:', error);
+            return { data: [], error };
+        }
+        
+        console.log(`Found ${data?.length || 0} sectors`);
+        return { data: data || [], error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching sectors:', error);
+        return { data: [], error };
+    }
+};
+
+// Create new sector (only company admin)
+export const createSector = async (sectorData: { name: string; company_id: string }) => {
+    try {
+        console.log('Creating sector with data:', sectorData);
+        
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            console.error('Error getting current user:', userError);
+            return { data: null, error: userError || new Error('User not found') };
+        }
+        
+        const { data, error } = await supabase
+            .from('sectors')
+            .insert([{
+                ...sectorData,
+                created_by: user.id,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error creating sector:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Sector created successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error creating sector:', error);
+        return { data: null, error };
+    }
+};
+
+// Update sector (only company admin)
+export const updateSector = async (id: string, updateData: { name: string }) => {
+    try {
+        console.log('Updating sector:', id, updateData);
+        
+        const { data, error } = await supabase
+            .from('sectors')
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error updating sector:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Sector updated successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error updating sector:', error);
+        return { data: null, error };
+    }
+};
+
+// Delete sector (only company admin)
+export const deleteSector = async (id: string) => {
+    try {
+        console.log('Deleting sector:', id);
+        
+        const { error } = await supabase
+            .from('sectors')
+            .delete()
+            .eq('id', id);
+            
+        if (error) {
+            console.error('Error deleting sector:', error);
+            return { error };
+        }
+        
+        console.log('Sector deleted successfully');
+        return { error: null };
+    } catch (error) {
+        console.error('Unexpected error deleting sector:', error);
+        return { error };
+    }
+};
+
+// ========================
 // CUSTOMER COMPANIES (FIRMA KARTLARI) TYPES & FUNCTIONS
 // ========================
 
@@ -376,7 +501,8 @@ export const checkEmailConflict = async (email: string) => {
 export interface CustomerCompany {
     id?: string;
     name: string;
-    sector?: string;
+    sector?: string; // Backward compatibility için
+    sector_id?: string; // Yeni sector FK
     phone?: string;
     email?: string;
     address?: string;
@@ -392,7 +518,7 @@ export interface CustomerCompany {
     last_contact_date?: string;
     next_reminder_date?: string;
     created_at?: string;
-    updated_at?: string;    // Join edilen alanlar
+    updated_at?: string;// Join edilen alanlar
     assigned_user?: {
         id: string;
         full_name: string;
