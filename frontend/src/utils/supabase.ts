@@ -494,6 +494,121 @@ export const deleteSector = async (id: string) => {
 };
 
 // ========================
+// COUNTRIES TYPES & FUNCTIONS  
+// ========================
+
+// TypeScript interface for Country
+export interface Country {
+    id?: string;
+    name: string;
+    company_id: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Get countries for a specific company
+export const getCountries = async (companyId: string) => {
+    try {
+        console.log('Fetching countries for company:', companyId);
+        
+        const { data, error } = await supabase
+            .from('countries')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+            
+        if (error) {
+            console.error('Error fetching countries:', error);
+            return { data: [], error };
+        }
+        
+        console.log('Countries fetched successfully:', data);
+        return { data: data || [], error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching countries:', error);
+        return { data: [], error };
+    }
+};
+
+// Create a new country
+export const createCountry = async (companyId: string, name: string) => {
+    try {
+        console.log('Creating country:', { companyId, name });
+        
+        const { data, error } = await supabase
+            .from('countries')
+            .insert({
+                name: name.trim(),
+                company_id: companyId
+            })
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error creating country:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Country created successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error creating country:', error);
+        return { data: null, error };
+    }
+};
+
+// Update an existing country
+export const updateCountry = async (id: string, name: string) => {
+    try {
+        console.log('Updating country:', { id, name });
+        
+        const { data, error } = await supabase
+            .from('countries')
+            .update({
+                name: name.trim(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error updating country:', error);
+            return { data: null, error };
+        }
+        
+        console.log('Country updated successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error updating country:', error);
+        return { data: null, error };
+    }
+};
+
+// Delete a country
+export const deleteCountry = async (id: string) => {
+    try {
+        console.log('Deleting country:', id);
+        
+        const { error } = await supabase
+            .from('countries')
+            .delete()
+            .eq('id', id);
+            
+        if (error) {
+            console.error('Error deleting country:', error);
+            return { error };
+        }
+        
+        console.log('Country deleted successfully');
+        return { error: null };
+    } catch (error) {
+        console.error('Unexpected error deleting country:', error);
+        return { error };
+    }
+};
+
+// ========================
 // CUSTOMER COMPANIES (FIRMA KARTLARI) TYPES & FUNCTIONS
 // ========================
 
