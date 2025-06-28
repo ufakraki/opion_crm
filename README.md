@@ -10,8 +10,10 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
   - **Şirket Kullanıcısı (Company User)**: Firma kartları oluşturup yönetebilir, kendisine atanan kartları görüntüleyebilir.
 
 - **Kapsamlı Firma Kartı Yönetimi**: 
-  - ✅ **Temel Bilgiler**: Firma adı, sektör, telefon, e-posta, website, adres, iletişim kişisi
+  - ✅ **Temel Bilgiler**: Firma adı, sektör, ülke, telefon, e-posta, website, adres, iletişim kişisi
   - ✅ **Sektör Sistemi**: Dinamik sektör yönetimi ve atama
+  - ✅ **Ülke Sistemi**: Dinamik ülke yönetimi ve atama
+  - ✅ **Fuar Yönetimi**: Dinamik fuar oluşturma ve çoklu fuar seçimi
   - ✅ **Fuar Takibi**: Fuara katılım durumu (Katılacak, Katılmayacak, Görüşülüyor)
   - ✅ **Kullanıcı Atama**: Company admin tarafından kullanıcılara firma kartı atama
   - ✅ **Notlar ve Takip**: Detaylı notlar ve son iletişim tarihi takibi
@@ -21,6 +23,17 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
   - ✅ Company adminler sektör oluşturabilir, düzenleyebilir ve silebilir
   - ✅ Firma kartları sektörlere atanabilir
   - ✅ Sektör bazında filtreleme ve kategorizasyon
+
+- **Ülke Yönetimi**: 
+  - ✅ Company adminler ülke oluşturabilir, düzenleyebilir ve silebilir
+  - ✅ Firma kartları ülkelere atanabilir
+  - ✅ Ülke bazında kategorizasyon
+
+- **Fuar Yönetimi**: 
+  - ✅ Company adminler fuar oluşturabilir, düzenleyebilir ve silebilir
+  - ✅ Firma kartlarında çoklu fuar seçimi
+  - ✅ Fuar-firma kartı ilişkilendirmesi (join tablosu)
+  - ✅ Fuar katılım durumu takibi
 
 - **Kullanıcı Atama Sistemi**: 
   - ✅ Company adminler firma kartlarını kullanıcılara atayabilir
@@ -42,7 +55,7 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
 - **Dashboard ve Navigasyon**: 
   - ✅ **Ana Dashboard**: Kullanıcı dostu kontrol paneli
   - ✅ **Breadcrumb Navigasyon**: Kolay navigasyon sistemi
-  - ✅ **Hızlı Erişim Kartları**: Firma kartları ve sektör yönetimine hızlı erişim
+  - ✅ **Hızlı Erişim Kartları**: Firma kartları, sektör, ülke ve fuar yönetimine hızlı erişim
 
 ## Teknoloji Yığını
 
@@ -62,6 +75,9 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
   - `companies`: Şirket bilgileri ve hiyerarşi
   - `customer_companies`: Firma kartları (müşteri firmaları)
   - `sectors`: Sektör yönetimi ve kategorizasyon
+  - `countries`: Ülke yönetimi ve kategorizasyon
+  - `fairs`: Fuar yönetimi ve organizasyon
+  - `customer_companies_fairs`: Firma kartı-fuar ilişkilendirme tablosu
   
 - **Dağıtım**: 
   - **Vercel**: Kolay erişim ve ölçeklenebilirlik için otomatik deployment
@@ -90,6 +106,13 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
      
      -- 2. Sonra sektör tablosu
      database/add_sectors_table.sql
+     
+     -- 3. Ülke tablosu
+     database/add_countries_table.sql
+     
+     -- 4. Fuar tablosu ve RLS güncellemeleri
+     database/add_fairs_table.sql
+     database/update_fairs_rls.sql
      ```
 
 4. **Ortam Değişkenleri**:
@@ -185,19 +208,24 @@ Proje tamamen responsive tasarımla geliştirilmiştir:
   - ✅ Şirket kullanıcıları oluşturup yönetebilir
   - ✅ Firma kartlarını oluşturup yönetebilir
   - ✅ Sektör yönetimi yapabilir (oluştur, düzenle, sil)
+  - ✅ Ülke yönetimi yapabilir (oluştur, düzenle, sil)
+  - ✅ Fuar yönetimi yapabilir (oluştur, düzenle, sil)
   - ✅ Firma kartlarını kullanıcılara atayabilir
   - ✅ İstatistikleri görüntüleyebilir
 
 - **Company Userlar**: 
   - ✅ Firma kartları oluşturabilir (otomatik kendilerine atanır)
   - ✅ Kendilerine atanan firma kartlarını yönetebilir
-  - ✅ Mevcut sektörleri kullanabilir (yeni sektör oluşturamazlar)
+  - ✅ Mevcut sektörleri, ülkeleri ve fuarları kullanabilir
+  - ✅ Çoklu fuar seçimi yapabilir
 
 ### Önemli Özellikler
 
 - **Firma Adı Güvenliği**: Firma adları sadece oluşturulurken girilebilir, sonradan değiştirilemez
 - **Veri İzolasyonu**: Her şirketin verileri tamamen izole, başka şirket verilerine erişim yoktur
 - **Sektör Sistemi**: Dinamik sektör yönetimi ile firma kategorilendirmesi
+- **Ülke Sistemi**: Dinamik ülke yönetimi ile coğrafi kategorizasyon
+- **Fuar Sistemi**: Dinamik fuar yönetimi ve çoklu fuar seçim sistemi
 - **Kullanıcı Atama**: Company adminler firma kartlarını ekip üyelerine atayabilir
 - **Responsive Design**: Mobil, tablet ve desktop'ta sorunsuz çalışır
 
@@ -224,8 +252,9 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
   - [x] RLS (Row Level Security) uygulaması
 
 - **Firma Kartı Sistemi**
-  - [x] Kapsamlı firma kartı oluşturma (ad, sektör, iletişim bilgileri, notlar)
+  - [x] Kapsamlı firma kartı oluşturma (ad, sektör, ülke, fuar, iletişim bilgileri, notlar)
   - [x] Fuar katılım durumu takibi
+  - [x] Çoklu fuar seçimi ve ilişkilendirme
   - [x] Kullanıcı atama sistemi
   - [x] Detay görüntüleme modalları
   - [x] Canlı istatistikler
@@ -234,6 +263,17 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
   - [x] Dinamik sektör oluşturma/düzenleme/silme
   - [x] Sektör-firma kartı ilişkilendirmesi
   - [x] Company admin seviyesi sektör kontrolü
+
+- **Ülke Yönetimi**
+  - [x] Dinamik ülke oluşturma/düzenleme/silme
+  - [x] Ülke-firma kartı ilişkilendirmesi
+  - [x] Company admin seviyesi ülke kontrolü
+
+- **Fuar Yönetimi**
+  - [x] Dinamik fuar oluşturma/düzenleme/silme
+  - [x] Çoklu fuar-firma kartı ilişkilendirmesi
+  - [x] Join tablosu ile many-to-many ilişki
+  - [x] Company admin seviyesi fuar kontrolü
 
 - **UI/UX**
   - [x] Modern, responsive tasarım
@@ -258,6 +298,15 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
 - **Mobil Uygulama**: React Native tabanlı mobil app
 
 ## Changelog
+
+### v1.1.0 (29 Haziran 2025)
+- ✅ **Ülke Yönetimi Sistemi**: Company adminler ülke oluşturabilir, düzenleyebilir ve silebilir
+- ✅ **Fuar Yönetimi Sistemi**: Company adminler fuar oluşturabilir, düzenleyebilir ve silebilir
+- ✅ **Çoklu Fuar Seçimi**: Firma kartlarında birden fazla fuar seçilebilir
+- ✅ **Join Tablosu İmplementasyonu**: customer_companies_fairs many-to-many ilişkisi
+- ✅ **Dashboard Genişletilmesi**: Ülke ve Fuar Yönetimi kartları eklendi
+- ✅ **UI/UX İyileştirmeleri**: Sektör/ülke/fuar yönetim panelleri için tutarlı tasarım
+- ✅ **Database Schema Güncellemeleri**: Ülke ve fuar tabloları, RLS policy'leri
 
 ### v1.0.0 (28 Haziran 2025)
 - ✅ İlk stabil sürüm

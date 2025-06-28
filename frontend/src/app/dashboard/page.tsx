@@ -169,6 +169,19 @@ export default function DashboardPage() {
                         Ülkeleri Yönet
                       </Button>
                     </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Fuar Yönetimi</h3>
+                      <p className="text-gray-600 text-sm">
+                        Firma kartları için fuarları yönetin
+                      </p>
+                      <Button 
+                        className="mt-4 w-full bg-orange-600 hover:bg-orange-700"
+                        onClick={() => router.push(`/companies/${profile.company_id}/fairs`)}
+                      >
+                        Fuarları Yönet
+                      </Button>
+                    </div>
                   </>
                 )}
                   {/* All Users - Firma Kartları */}

@@ -878,3 +878,116 @@ export const getCustomerCompaniesStats = async (companyId: string) => {
         };
     }
 };
+
+// ========================
+// FAIRS TYPES & FUNCTIONS
+// ========================
+
+// TypeScript interface for Fair
+export interface Fair {
+    id?: string;
+    name: string;
+    company_id: string;
+    created_by?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Get fairs for a specific company
+export const getFairs = async (companyId: string) => {
+    try {
+        console.log('Fetching fairs for company:', companyId);
+        const { data, error } = await supabase
+            .from('fairs')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+        if (error) {
+            console.error('Error fetching fairs:', error);
+            return { data: [], error };
+        }
+        console.log(`Found ${data?.length || 0} fairs`);
+        return { data: data || [], error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching fairs:', error);
+        return { data: [], error };
+    }
+};
+
+// Create new fair (only company admin)
+export const createFair = async (fairData: { name: string; company_id: string }) => {
+    try {
+        console.log('Creating fair with data:', fairData);
+        
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            console.error('Error getting current user:', userError);
+            return { data: null, error: userError || new Error('User not found') };
+        }
+        
+        console.log('Current user ID:', user.id);
+        
+        const { data, error } = await supabase
+            .from('fairs')
+            .insert([{
+                name: fairData.name,
+                company_id: fairData.company_id,
+                created_by: user.id,
+            }])
+            .select();
+            
+        if (error) {
+            console.error('Error creating fair:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            return { data: null, error };
+        }
+        
+        console.log('Fair created successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error creating fair:', error);
+        return { data: null, error };
+    }
+};
+
+// Update fair
+export const updateFair = async (fairId: string, updates: { name: string }) => {
+    try {
+        console.log('Updating fair:', fairId, updates);
+        const { data, error } = await supabase
+            .from('fairs')
+            .update(updates)
+            .eq('id', fairId)
+            .select();
+        if (error) {
+            console.error('Error updating fair:', error);
+            return { data: null, error };
+        }
+        console.log('Fair updated successfully:', data);
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error updating fair:', error);
+        return { data: null, error };
+    }
+};
+
+// Delete fair
+export const deleteFair = async (fairId: string) => {
+    try {
+        console.log('Deleting fair:', fairId);
+        const { data, error } = await supabase
+            .from('fairs')
+            .delete()
+            .eq('id', fairId);
+        if (error) {
+            console.error('Error deleting fair:', error);
+            return { data: null, error };
+        }
+        console.log('Fair deleted successfully');
+        return { data, error: null };
+    } catch (error) {
+        console.error('Unexpected error deleting fair:', error);
+        return { data: null, error };
+    }
+};

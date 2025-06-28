@@ -10,9 +10,11 @@ import {
   getCompanyUsers,
   getSectors,
   getCountries,
+  getFairs,
   CustomerCompany,
   Sector,
-  Country 
+  Country,
+  Fair
 } from '../../../../utils/supabase'
 
 export default function CustomersPage() {
@@ -27,6 +29,7 @@ export default function CustomersPage() {
   const [companyUsers, setCompanyUsers] = useState<any[]>([])
   const [sectors, setSectors] = useState<Sector[]>([])
   const [countries, setCountries] = useState<Country[]>([])
+  const [fairs, setFairs] = useState<Fair[]>([])
   
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -44,7 +47,8 @@ export default function CustomersPage() {
     contact_person: '',
     notes: '',
     attending_fair: undefined as boolean | undefined,
-    assigned_user_id: '' // Company admin için kullanıcı seçimi
+    assigned_user_id: '', // Company admin için kullanıcı seçimi
+    fairs: [] as string[] // Çoklu fuar seçimi
   })
 
   useEffect(() => {
@@ -76,6 +80,9 @@ export default function CustomersPage() {
           
           // Ülkeleri getir
           await fetchCountries(companyId as string)
+          
+          // Fuarları getir
+          await fetchFairs(companyId as string)
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -170,6 +177,24 @@ export default function CustomersPage() {
     }
   }
   
+  // Fuarları getir
+  async function fetchFairs(companyId: string) {
+    try {
+      console.log('🔄 Fetching fairs for company:', companyId)
+      
+      const result = await getFairs(companyId)
+      
+      if (result.error) {
+        console.error('❌ Error fetching fairs:', result.error)
+      } else {
+        console.log('✅ Fairs fetched successfully:', result.data)
+        setFairs(result.data)
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error fetching fairs:', error)
+    }
+  }
+  
   // Modal ve form fonksiyonları
   const resetForm = () => {
     setFormData({
@@ -183,17 +208,27 @@ export default function CustomersPage() {
       contact_person: '',
       notes: '',
       attending_fair: undefined,
-      assigned_user_id: ''
+      assigned_user_id: '',
+      fairs: []
     })
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked
-      setFormData(prev => ({ ...prev, [name]: checked }))
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    const { name, value } = target;
+    if (target.tagName === 'SELECT' && (target as HTMLSelectElement).multiple) {
+      // Çoklu seçimli dropdown için
+      const options = (target as HTMLSelectElement).options;
+      const selected: string[] = [];
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].selected) selected.push(options[i].value);
+      }
+      setFormData(prev => ({ ...prev, [name]: selected }));
+    } else if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
+      const checked = (target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   }
 
@@ -216,6 +251,14 @@ export default function CustomersPage() {
         console.error('❌ Error creating customer:', result.error)
         alert('Firma kartı oluşturulurken hata oluştu!')
       } else {
+        // Eğer fairs seçiliyse, join tablosuna ekle
+        if (formData.fairs && formData.fairs.length > 0 && result.data && result.data[0]?.id) {
+          const customerCompanyId = result.data[0].id;
+          // Her bir seçili fuar için join tablosuna ekle
+          await supabase.from('customer_companies_fairs').insert(
+            formData.fairs.map(fair_id => ({ customer_company_id: customerCompanyId, fair_id }))
+          );
+        }
         console.log('✅ Customer created successfully:', result.data)
         
         // Formu temizle ve modalı kapat
@@ -724,6 +767,29 @@ export default function CustomersPage() {
                   />
                 </div>
 
+                {/* Fuar Adı - Çoklu Seçim */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fuar Adı
+                  </label>
+                  <select
+                    name="fairs"
+                    multiple
+                    value={formData.fairs}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                  >
+                    {fairs.map((fair) => (
+                      <option key={fair.id} value={fair.id}>
+                        {fair.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                  </p>
+                </div>
+
                 {/* Notlar */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1208,6 +1274,29 @@ export default function CustomersPage() {
                   />
                 </div>
 
+                {/* Fuar Adı - Çoklu Seçim */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fuar Adı
+                  </label>
+                  <select
+                    name="fairs"
+                    multiple
+                    value={formData.fairs}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                  >
+                    {fairs.map((fair) => (
+                      <option key={fair.id} value={fair.id}>
+                        {fair.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                  </p>
+                </div>
+
                 {/* Notlar */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1221,9 +1310,7 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Bu firma hakkında notlar, hatırlatıcılar..."
                   />
-                </div>
-
-                {/* Atanan Kullanıcı Bilgisi */}
+                </div>                {/* Atanan Kullanıcı Bilgisi */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Atanan Kullanıcı
