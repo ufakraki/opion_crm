@@ -10,11 +10,14 @@ Opion CRM, Altaion Interactive tarafından geliştirilen müşteri ilişkileri y
   - **Şirket Kullanıcısı (Company User)**: Firma kartları oluşturup yönetebilir, kendisine atanan kartları görüntüleyebilir.
 
 - **Kapsamlı Firma Kartı Yönetimi**: 
-  - ✅ **Temel Bilgiler**: Firma adı, sektör, ülke, telefon, e-posta, website, adres, iletişim kişisi
+  - ✅ **Temel Bilgiler**: Firma adı, sektör, ülke, telefon, 3 e-posta alanı, website, adres, iletişim kişisi
   - ✅ **Sektör Sistemi**: Dinamik sektör yönetimi ve atama
   - ✅ **Ülke Sistemi**: Dinamik ülke yönetimi ve atama
   - ✅ **Fuar Yönetimi**: Dinamik fuar oluşturma ve çoklu fuar seçimi
   - ✅ **Fuar Takibi**: Fuara katılım durumu (Katılacak, Katılmayacak, Görüşülüyor)
+  - 🚧 **Firma Kartı Düzenleme**: Gelişmiş düzenleme sistemi (ADIM 7)
+  - 🚧 **Liste Görünümü**: Table görünümü ve pagination sistemi
+  - 🚧 **Durum Sistemi**: Görüşülmedi/Görüşülüyor otomatik durumlar
   - ✅ **Kullanıcı Atama**: Company admin tarafından kullanıcılara firma kartı atama
   - ✅ **Notlar ve Takip**: Detaylı notlar ve son iletişim tarihi takibi
   - ✅ **İstatistikler**: Canlı fuar katılım ve firma sayısı istatistikleri
@@ -216,8 +219,10 @@ Proje tamamen responsive tasarımla geliştirilmiştir:
 - **Company Userlar**: 
   - ✅ Firma kartları oluşturabilir (otomatik kendilerine atanır)
   - ✅ Kendilerine atanan firma kartlarını yönetebilir
+  - 🚧 Sadece atanan firmalarını düzenleyebilir (ADIM 7.5)
   - ✅ Mevcut sektörleri, ülkeleri ve fuarları kullanabilir
   - ✅ Çoklu fuar seçimi yapabilir
+  - 🚧 Akıllı filtre sistemi (sadece atanan firmalardan)
 
 ### Önemli Özellikler
 
@@ -252,12 +257,15 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
   - [x] RLS (Row Level Security) uygulaması
 
 - **Firma Kartı Sistemi**
-  - [x] Kapsamlı firma kartı oluşturma (ad, sektör, ülke, fuar, iletişim bilgileri, notlar)
+  - [x] Kapsamlı firma kartı oluşturma (ad, sektör, ülke, fuar, 3 email, iletişim bilgileri, notlar)
   - [x] Fuar katılım durumu takibi
   - [x] Çoklu fuar seçimi ve ilişkilendirme
   - [x] Kullanıcı atama sistemi
   - [x] Detay görüntüleme modalları
   - [x] Canlı istatistikler
+  - [ ] **ADIM 7**: Liste görünümü ve pagination (Geliştiriliyor)
+  - [ ] **ADIM 7**: Gelişmiş düzenleme sistemi (Geliştiriliyor)
+  - [ ] **ADIM 7**: Akıllı arama ve filtreleme (Geliştiriliyor)
 
 - **Sektör Yönetimi**
   - [x] Dinamik sektör oluşturma/düzenleme/silme
@@ -282,10 +290,45 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
   - [x] Breadcrumb navigasyon
   - [x] Mobil uyumluluk
 
-### 🚧 Geliştirilmekte Olan Özellikler
+### 🚧 Geliştirilmekte Olan Özellikler (ADIM 7)
 
-- **Firma Kartı Düzenleme**: Firma kartlarını düzenleme özelliği (firma adı hariç)
-- **Arama ve Filtreleme**: Gelişmiş arama ve filtreleme sistemi
+- **7.1 Liste Görünümü ve Pagination**: 
+  - Kart görünümünden table/liste görünümüne geçiş
+  - 25 firma/sayfa pagination sistemi
+  - Next/Previous/First/Last sayfa navigasyonu
+
+- **7.2 Durum Sistemi**: 
+  - 🔵 **Görüşülmedi** (Not boş ise) - Otomatik durum
+  - 🟡 **Görüşülüyor** (Not varsa) - Otomatik durum
+  - Renk kodlaması ve görsel göstergeler
+
+- **7.3 Gelişmiş Arama Sistemi**: 
+  - Firma adı arama (minimum 3 karakter)
+  - Sektör bazında arama dropdown'u
+  - Ülke bazında arama dropdown'u
+  - Akıllı arama validasyonu
+
+- **7.4 Akıllı Filtre Barları**: 
+  - 🟢 Fuara Katılan Firma (tıklanabilir filtre)
+  - 🔴 Fuara Katılmayan Firma (tıklanabilir filtre)
+  - 💬 Görüşülen Firma (tıklanabilir filtre)
+  - 🔵 Görüşülmeyen Firma (yeni - tıklanabilir filtre)
+  - **Company User Özel**: Sadece atanan firmalardan filtreleme
+
+- **7.5 Yetki Kontrolü ve Düzenleme**: 
+  - Company admin: Tüm firmaları düzenleyebilir/silebilir
+  - Company user: Sadece atanan firmaları düzenleyebilir
+  - Dinamik buton görünürlüğü ve yetki kontrolü
+  - Gelişmiş düzenleme modalları
+
+- **7.6 RLS Policy Güncellemesi**: 
+  - Basit ve güvenilir `company_id` kontrolü
+  - Customer_companies tablosu için güncellenmiş policy'ler
+  - Performanslı ve hatasız güvenlik sistemi
+
+### 📋 Sonraki Planlanan Özellikler
+
+- **Hatırlatıcı Sistemi**: 7 günlük otomatik hatırlatma modülü
 - **Raporlama**: Detaylı raporlama ve export özellikleri
 - **Hatırlatıcı Sistemi**: Otomatik takip hatırlatıcıları
 
@@ -298,6 +341,16 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
 - **Mobil Uygulama**: React Native tabanlı mobil app
 
 ## Changelog
+
+### v1.2.0 (30 Haziran 2025) - ADIM 7: Gelişmiş Firma Kartı Yönetimi 🚧
+- 🚧 **3 Email Alanı Sistemi**: Firma kartlarında email1, email2, email3 alanları
+- 🚧 **Liste Görünümü**: Kart görünümünden table/liste görünümüne geçiş
+- 🚧 **Pagination Sistemi**: 25 firma/sayfa navigation sistemi
+- 🚧 **Durum Sistemi**: Görüşülmedi/Görüşülüyor otomatik durum belirleme
+- 🚧 **Gelişmiş Arama**: Firma adı (min 3 kar.), sektör ve ülke bazında arama
+- 🚧 **Akıllı Filtre Barları**: 4 farklı durum filtresi + company user özel filtreleme
+- 🚧 **Düzenleme Sistemi**: Yetki kontrolü ile firma kartı düzenleme
+- 🚧 **RLS Policy**: Basit ve güvenilir company_id kontrolü
 
 ### v1.1.0 (29 Haziran 2025)
 - ✅ **Ülke Yönetimi Sistemi**: Company adminler ülke oluşturabilir, düzenleyebilir ve silebilir

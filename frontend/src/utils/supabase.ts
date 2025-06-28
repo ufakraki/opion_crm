@@ -618,8 +618,11 @@ export interface CustomerCompany {
     name: string;
     sector?: string; // Backward compatibility için
     sector_id?: string; // Yeni sector FK
+    country_id?: string; // Ülke FK
     phone?: string;
-    email?: string;
+    email1?: string;
+    email2?: string;
+    email3?: string;
     address?: string;
     contact_person?: string;
     website?: string;
@@ -665,7 +668,9 @@ export const createCustomerCompany = async (customerData: CustomerCompany) => {
             name: customerData.name,
             sector: customerData.sector || null,
             phone: customerData.phone || null,
-            email: customerData.email || null,
+            email1: customerData.email1 || null,
+            email2: customerData.email2 || null,
+            email3: customerData.email3 || null,
             address: customerData.address || null,
             contact_person: customerData.contact_person || null,
             website: customerData.website || null,

@@ -41,7 +41,9 @@ export default function CustomersPage() {
     sector_id: '', // Sektör dropdown için
     country_id: '', // Ülke dropdown için
     phone: '',
-    email: '',
+    email1: '',
+    email2: '',
+    email3: '',
     address: '',
     website: '',
     contact_person: '',
@@ -202,7 +204,9 @@ export default function CustomersPage() {
       sector_id: '',
       country_id: '',
       phone: '',
-      email: '',
+      email1: '',
+      email2: '',
+      email3: '',
       address: '',
       website: '',
       contact_person: '',
@@ -511,12 +515,30 @@ export default function CustomersPage() {
                             </div>
                           )}
                           
-                          {customer.email && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">✉️</span>
-                              <a href={`mailto:${customer.email}`} className="ml-2 hover:text-blue-600 transition-colors truncate">
-                                {customer.email}
-                              </a>
+                          {(customer.email1 || customer.email2 || customer.email3) && (
+                            <div className="space-y-1">
+                              {customer.email1 && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <span className="w-5 text-gray-400">✉️</span>
+                                  <a href={`mailto:${customer.email1}`} className="ml-2 hover:text-blue-600 transition-colors truncate">
+                                    {customer.email1}
+                                  </a>
+                                </div>
+                              )}
+                              {customer.email2 && (
+                                <div className="flex items-center text-sm text-gray-600 ml-6">
+                                  <a href={`mailto:${customer.email2}`} className="hover:text-blue-600 transition-colors truncate">
+                                    {customer.email2}
+                                  </a>
+                                </div>
+                              )}
+                              {customer.email3 && (
+                                <div className="flex items-center text-sm text-gray-600 ml-6">
+                                  <a href={`mailto:${customer.email3}`} className="hover:text-blue-600 transition-colors truncate">
+                                    {customer.email3}
+                                  </a>
+                                </div>
+                              )}
                             </div>
                           )}
                           
@@ -707,18 +729,48 @@ export default function CustomersPage() {
                   />
                 </div>
 
-                {/* Email */}
+                {/* Email 1 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    Email 1
                   </label>
                   <input
                     type="email"
-                    name="email"
-                    value={formData.email}
+                    name="email1"
+                    value={formData.email1}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="info@firma.com"
+                  />
+                </div>
+
+                {/* Email 2 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email 2
+                  </label>
+                  <input
+                    type="email"
+                    name="email2"
+                    value={formData.email2}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="satış@firma.com"
+                  />
+                </div>
+
+                {/* Email 3 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email 3
+                  </label>
+                  <input
+                    type="email"
+                    name="email3"
+                    value={formData.email3}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="destek@firma.com"
                   />
                 </div>
 
@@ -986,13 +1038,34 @@ export default function CustomersPage() {
                       </div>
                     )}
                     
-                    {selectedCustomer.email && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <div className="text-sm text-gray-600">
-                          <a href={`mailto:${selectedCustomer.email}`} className="hover:text-blue-600 transition-colors">
-                            {selectedCustomer.email}
-                          </a>
+                    {(selectedCustomer.email1 || selectedCustomer.email2 || selectedCustomer.email3) && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Adresleri</label>
+                        <div className="space-y-1">
+                          {selectedCustomer.email1 && (
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium text-gray-500">Email 1:</span>
+                              <a href={`mailto:${selectedCustomer.email1}`} className="ml-2 hover:text-blue-600 transition-colors">
+                                {selectedCustomer.email1}
+                              </a>
+                            </div>
+                          )}
+                          {selectedCustomer.email2 && (
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium text-gray-500">Email 2:</span>
+                              <a href={`mailto:${selectedCustomer.email2}`} className="ml-2 hover:text-blue-600 transition-colors">
+                                {selectedCustomer.email2}
+                              </a>
+                            </div>
+                          )}
+                          {selectedCustomer.email3 && (
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium text-gray-500">Email 3:</span>
+                              <a href={`mailto:${selectedCustomer.email3}`} className="ml-2 hover:text-blue-600 transition-colors">
+                                {selectedCustomer.email3}
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1214,18 +1287,48 @@ export default function CustomersPage() {
                   />
                 </div>
 
-                {/* Email */}
+                {/* Email 1 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    Email 1
                   </label>
                   <input
                     type="email"
-                    name="email"
-                    value={formData.email}
+                    name="email1"
+                    value={formData.email1}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="info@firma.com"
+                  />
+                </div>
+
+                {/* Email 2 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email 2
+                  </label>
+                  <input
+                    type="email"
+                    name="email2"
+                    value={formData.email2}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="satış@firma.com"
+                  />
+                </div>
+
+                {/* Email 3 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email 3
+                  </label>
+                  <input
+                    type="email"
+                    name="email3"
+                    value={formData.email3}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="destek@firma.com"
                   />
                 </div>
 
