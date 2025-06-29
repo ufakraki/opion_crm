@@ -229,6 +229,68 @@ export default function CustomersPage() {
     }
   }
   
+  // Status helper functions - ADIM 7.2
+  const getCustomerStatus = (customer: CustomerCompany) => {
+    // Önce fuar durumunu kontrol et (en yüksek öncelik)
+    if (customer.attending_fair === true) {
+      return {
+        type: 'attending_fair',
+        label: 'Fuara Katılıyor',
+        color: 'bg-green-100 text-green-800',
+        icon: '🟢'
+      }
+    }
+    
+    if (customer.attending_fair === false) {
+      return {
+        type: 'not_attending_fair',
+        label: 'Fuara Katılmıyor',
+        color: 'bg-red-100 text-red-800',
+        icon: '🔴'
+      }
+    }
+    
+    // Fuar durumu belirlenmemişse, not durumuna bak
+    if (customer.notes && customer.notes.trim().length > 0) {
+      return {
+        type: 'under_discussion',
+        label: 'Görüşülüyor',
+        color: 'bg-yellow-100 text-yellow-800',
+        icon: '🟡'
+      }
+    }
+    
+    // Hiçbir durum yoksa görüşülmedi
+    return {
+      type: 'not_contacted',
+      label: 'Görüşülmedi',
+      color: 'bg-blue-100 text-blue-800',
+      icon: '🔵'
+    }
+  }
+
+  // Stats hesaplama - ADIM 7.2 güncellemesi
+  const getUpdatedStats = () => {
+    const attending = customers.filter(c => c.attending_fair === true).length
+    const notAttending = customers.filter(c => c.attending_fair === false).length
+    const underDiscussion = customers.filter(c => 
+      (c.attending_fair === null || c.attending_fair === undefined) && 
+      c.notes && c.notes.trim().length > 0
+    ).length
+    const notContacted = customers.filter(c => 
+      (c.attending_fair === null || c.attending_fair === undefined) && 
+      (!c.notes || c.notes.trim().length === 0)
+    ).length
+    
+    return {
+      total: customers.length,
+      attendingFair: attending,
+      notAttendingFair: notAttending,
+      underDiscussion: underDiscussion,
+      notContacted: notContacted
+    }
+  }
+  
   // Modal ve form fonksiyonları
   const resetForm = () => {
     setFormData({
@@ -447,7 +509,7 @@ export default function CustomersPage() {
             <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Toplam: {stats.total} firma kartı</span>
+                  <span className="font-medium">Toplam: {getUpdatedStats().total} firma kartı</span>
                   {customers.length > itemsPerPage && (
                     <span className="ml-2 text-gray-500">
                       (Sayfa {currentPage}/{getTotalPages()})
@@ -455,9 +517,10 @@ export default function CustomersPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>🟢 Fuara Katılan Firma: {stats.attendingFair}</span>
-                  <span>🔴 Fuara Katılmayan Firma: {stats.notAttendingFair}</span>
-                  <span>💬 Görüşülen Firma: {stats.underDiscussion}</span>
+                  <span>🟢 Fuara Katılan: {getUpdatedStats().attendingFair}</span>
+                  <span>🔴 Fuara Katılmayan: {getUpdatedStats().notAttendingFair}</span>
+                  <span>� Görüşülüyor: {getUpdatedStats().underDiscussion}</span>
+                  <span>🔵 Görüşülmedi: {getUpdatedStats().notContacted}</span>
                 </div>
               </div>
             </div>
@@ -537,21 +600,14 @@ export default function CustomersPage() {
                             
                             {/* Status Badges */}
                             <div className="flex flex-col gap-1 ml-4">
-                              {customer.attending_fair === true && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  🟢 Fuara Katılacak
-                                </span>
-                              )}
-                              {customer.attending_fair === false && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  🔴 Fuara Katılmayacak
-                                </span>
-                              )}
-                              {(customer.attending_fair === null || customer.attending_fair === undefined) && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                  💬 Görüşülüyor
-                                </span>
-                              )}
+                              {(() => {
+                                const status = getCustomerStatus(customer)
+                                return (
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                                    {status.icon} {status.label}
+                                  </span>
+                                )
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -759,21 +815,14 @@ export default function CustomersPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {customer.attending_fair === true && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  🟢 Fuara Katılacak
-                                </span>
-                              )}
-                              {customer.attending_fair === false && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  🔴 Fuara Katılmayacak
-                                </span>
-                              )}
-                              {(customer.attending_fair === null || customer.attending_fair === undefined) && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                  💬 Görüşülüyor
-                                </span>
-                              )}
+                              {(() => {
+                                const status = getCustomerStatus(customer)
+                                return (
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                                    {status.icon} {status.label}
+                                  </span>
+                                )
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {customer.assigned_user ? (
