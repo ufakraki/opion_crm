@@ -31,6 +31,11 @@ export default function CustomersPage() {
   const [countries, setCountries] = useState<Country[]>([])
   const [fairs, setFairs] = useState<Fair[]>([])
   
+  // View and pagination state
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(25) // Normal pagination - 25 firma per page
+  
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -194,6 +199,33 @@ export default function CustomersPage() {
       }
     } catch (error) {
       console.error('❌ Unexpected error fetching fairs:', error)
+    }
+  }
+  
+  // Pagination helper functions
+  const getPaginatedCustomers = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return customers.slice(startIndex, endIndex)
+  }
+  
+  const getTotalPages = () => {
+    return Math.ceil(customers.length / itemsPerPage)
+  }
+  
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+  }
+  
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+  
+  const goToNextPage = () => {
+    if (currentPage < getTotalPages()) {
+      setCurrentPage(currentPage + 1)
     }
   }
   
@@ -368,6 +400,30 @@ export default function CustomersPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-2">
+                {/* View Mode Toggle */}
+                <div className="flex rounded-lg border border-gray-300 bg-white">
+                  <button
+                    className={`px-3 py-2 text-sm rounded-l-lg transition-colors ${
+                      viewMode === 'cards' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setViewMode('cards')}
+                  >
+                    🔲 Kartlar
+                  </button>
+                  <button
+                    className={`px-3 py-2 text-sm rounded-r-lg transition-colors border-l border-gray-300 ${
+                      viewMode === 'table' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setViewMode('table')}
+                  >
+                    📋 Liste
+                  </button>
+                </div>
+                
                 <button 
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   onClick={() => setShowCreateModal(true)}
@@ -392,6 +448,11 @@ export default function CustomersPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">Toplam: {stats.total} firma kartı</span>
+                  {customers.length > itemsPerPage && (
+                    <span className="ml-2 text-gray-500">
+                      (Sayfa {currentPage}/{getTotalPages()})
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>🟢 Fuara Katılan Firma: {stats.attendingFair}</span>
@@ -454,180 +515,381 @@ export default function CustomersPage() {
             ) : (
               /* Customer List */
               <div className="p-0">
-                {/* Customer Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4 sm:p-6">
-                  {customers.map((customer) => (
-                    <div key={customer.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                      
-                      {/* Card Header */}
-                      <div className="p-4 border-b border-gray-100">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-gray-900 truncate">
-                              {customer.name}
-                            </h3>
-                            {customer.sector && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                📋 {customer.sector}
-                              </p>
-                            )}
-                          </div>
-                          
-                          {/* Status Badges */}
-                          <div className="flex flex-col gap-1 ml-4">
-                            {customer.attending_fair === true && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                🟢 Fuara Katılacak
-                              </span>
-                            )}
-                            {customer.attending_fair === false && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                🔴 Fuara Katılmayacak
-                              </span>
-                            )}
-                            {(customer.attending_fair === null || customer.attending_fair === undefined) && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                💬 Görüşülüyor
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="p-4 space-y-3">
+                {/* Cards View */}
+                {viewMode === 'cards' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4 sm:p-6">
+                    {getPaginatedCustomers().map((customer) => (
+                      <div key={customer.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
                         
-                        {/* Contact Information */}
-                        <div className="space-y-2">
-                          {customer.contact_person && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">👤</span>
-                              <span className="ml-2">{customer.contact_person}</span>
-                            </div>
-                          )}
-                          
-                          {customer.phone && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">📞</span>
-                              <a href={`tel:${customer.phone}`} className="ml-2 hover:text-blue-600 transition-colors">
-                                {customer.phone}
-                              </a>
-                            </div>
-                          )}
-                          
-                          {(customer.email1 || customer.email2 || customer.email3) && (
-                            <div className="space-y-1">
-                              {customer.email1 && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <span className="w-5 text-gray-400">✉️</span>
-                                  <a href={`mailto:${customer.email1}`} className="ml-2 hover:text-blue-600 transition-colors truncate">
-                                    {customer.email1}
-                                  </a>
-                                </div>
-                              )}
-                              {customer.email2 && (
-                                <div className="flex items-center text-sm text-gray-600 ml-6">
-                                  <a href={`mailto:${customer.email2}`} className="hover:text-blue-600 transition-colors truncate">
-                                    {customer.email2}
-                                  </a>
-                                </div>
-                              )}
-                              {customer.email3 && (
-                                <div className="flex items-center text-sm text-gray-600 ml-6">
-                                  <a href={`mailto:${customer.email3}`} className="hover:text-blue-600 transition-colors truncate">
-                                    {customer.email3}
-                                  </a>
-                                </div>
+                        {/* Card Header */}
+                        <div className="p-4 border-b border-gray-100">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                {customer.name}
+                              </h3>
+                              {customer.sector && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  📋 {customer.sector}
+                                </p>
                               )}
                             </div>
-                          )}
-                          
-                          {customer.website && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">🌐</span>
-                              <a 
-                                href={customer.website.startsWith('http') ? customer.website : `https://${customer.website}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="ml-2 hover:text-blue-600 transition-colors truncate"
-                              >
-                                {customer.website}
-                              </a>
+                            
+                            {/* Status Badges */}
+                            <div className="flex flex-col gap-1 ml-4">
+                              {customer.attending_fair === true && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  🟢 Fuara Katılacak
+                                </span>
+                              )}
+                              {customer.attending_fair === false && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  🔴 Fuara Katılmayacak
+                                </span>
+                              )}
+                              {(customer.attending_fair === null || customer.attending_fair === undefined) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  💬 Görüşülüyor
+                                </span>
+                              )}
                             </div>
-                          )}
-                          
-                          {customer.address && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">📍</span>
-                              <span className="ml-2 truncate">{customer.address}</span>
-                            </div>
-                          )}
+                          </div>
                         </div>
 
-                        {/* Notes Preview */}
-                        {customer.notes && (
-                          <div className="pt-2 border-t border-gray-100">
-                            <p className="text-xs text-gray-500 line-clamp-2">
-                              📝 {customer.notes}
-                            </p>
-                          </div>
-                        )}                        {/* Last Contact Date */}
-                        {customer.last_contact_date && (
-                          <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
-                            Son İletişim: {new Date(customer.last_contact_date).toLocaleDateString('tr-TR')}
-                          </div>
-                        )}
-                          {/* Assigned User */}
-                        {customer.assigned_user && (
-                          <div className="pt-2 border-t border-gray-100">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <span className="w-5 text-gray-400">👨‍💼</span>
-                              <span className="ml-2 font-medium">
-                                @{customer.assigned_user.username}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Card Footer - Actions */}
-                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg">
-                        <div className="flex justify-between items-center">
-                          {/* Left side - Creation info */}
-                          <div className="text-xs text-gray-400">
-                            {customer.created_at && (
-                              <>Oluşturuldu: {new Date(customer.created_at).toLocaleDateString('tr-TR')}</>
+                        {/* Card Body */}
+                        <div className="p-4 space-y-3">
+                          
+                          {/* Contact Information */}
+                          <div className="space-y-2">
+                            {customer.contact_person && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <span className="w-5 text-gray-400">👤</span>
+                                <span className="ml-2">{customer.contact_person}</span>
+                              </div>
+                            )}
+                            
+                            {customer.phone && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <span className="w-5 text-gray-400">📞</span>
+                                <a href={`tel:${customer.phone}`} className="ml-2 hover:text-blue-600 transition-colors">
+                                  {customer.phone}
+                                </a>
+                              </div>
+                            )}
+                            
+                            {(customer.email1 || customer.email2 || customer.email3) && (
+                              <div className="space-y-1">
+                                {customer.email1 && (
+                                  <div className="flex items-center text-sm text-gray-600">
+                                    <span className="w-5 text-gray-400">✉️</span>
+                                    <a href={`mailto:${customer.email1}`} className="ml-2 hover:text-blue-600 transition-colors truncate">
+                                      {customer.email1}
+                                    </a>
+                                  </div>
+                                )}
+                                {customer.email2 && (
+                                  <div className="flex items-center text-sm text-gray-600 ml-6">
+                                    <a href={`mailto:${customer.email2}`} className="hover:text-blue-600 transition-colors truncate">
+                                      {customer.email2}
+                                    </a>
+                                  </div>
+                                )}
+                                {customer.email3 && (
+                                  <div className="flex items-center text-sm text-gray-600 ml-6">
+                                    <a href={`mailto:${customer.email3}`} className="hover:text-blue-600 transition-colors truncate">
+                                      {customer.email3}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {customer.website && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <span className="w-5 text-gray-400">🌐</span>
+                                <a 
+                                  href={customer.website.startsWith('http') ? customer.website : `https://${customer.website}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="ml-2 hover:text-blue-600 transition-colors truncate"
+                                >
+                                  {customer.website}
+                                </a>
+                              </div>
+                            )}
+                            
+                            {customer.address && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <span className="w-5 text-gray-400">📍</span>
+                                <span className="ml-2 truncate">{customer.address}</span>
+                              </div>
                             )}
                           </div>
+
+                          {/* Notes Preview */}
+                          {customer.notes && (
+                            <div className="pt-2 border-t border-gray-100">
+                              <p className="text-xs text-gray-500 line-clamp-2">
+                                📝 {customer.notes}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Last Contact Date */}
+                          {customer.last_contact_date && (
+                            <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+                              Son İletişim: {new Date(customer.last_contact_date).toLocaleDateString('tr-TR')}
+                            </div>
+                          )}
                           
-                          {/* Right side - Action buttons */}
-                          <div className="flex space-x-2">                            <button 
-                              className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                              onClick={() => {
-                                setSelectedCustomer(customer)
-                                setShowDetailModal(true)
-                              }}
-                            >
-                              👁️ Görüntüle
-                            </button>
-                            <button 
-                              className="text-xs px-3 py-1 text-green-600 hover:bg-green-50 rounded transition-colors disabled:text-gray-400"
-                              disabled
-                            >
-                              ✏️ Düzenle
-                            </button>
-                            <button 
-                              className="text-xs px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:text-gray-400"
-                              disabled
-                            >
-                              🗑️ Sil
-                            </button>
+                          {/* Assigned User */}
+                          {customer.assigned_user && (
+                            <div className="pt-2 border-t border-gray-100">
+                              <div className="flex items-center text-sm text-gray-600">
+                                <span className="w-5 text-gray-400">👨‍💼</span>
+                                <span className="ml-2 font-medium">
+                                  @{customer.assigned_user.username}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer - Actions */}
+                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg">
+                          <div className="flex justify-between items-center">
+                            {/* Left side - Creation info */}
+                            <div className="text-xs text-gray-400">
+                              {customer.created_at && (
+                                <>Oluşturuldu: {new Date(customer.created_at).toLocaleDateString('tr-TR')}</>
+                              )}
+                            </div>
+                            
+                            {/* Right side - Action buttons */}
+                            <div className="flex space-x-2">
+                              <button 
+                                className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                onClick={() => {
+                                  setSelectedCustomer(customer)
+                                  setShowDetailModal(true)
+                                }}
+                              >
+                                👁️ Görüntüle
+                              </button>
+                              <button 
+                                className="text-xs px-3 py-1 text-green-600 hover:bg-green-50 rounded transition-colors disabled:text-gray-400"
+                                disabled
+                              >
+                                ✏️ Düzenle
+                              </button>
+                              <button 
+                                className="text-xs px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:text-gray-400"
+                                disabled
+                              >
+                                🗑️ Sil
+                              </button>
+                            </div>
                           </div>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Table View */}
+                {viewMode === 'table' && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Firma Bilgileri
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            İletişim
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Durum
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Atanan Kullanıcı
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            İşlemler
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {getPaginatedCustomers().map((customer) => (
+                          <tr key={customer.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {customer.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    📋 {customer.sector || 'Sektör belirtilmemiş'}
+                                  </div>
+                                  {customer.address && (
+                                    <div className="text-xs text-gray-400 truncate max-w-xs">
+                                      📍 {customer.address}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 space-y-1">
+                                {customer.contact_person && (
+                                  <div className="text-sm text-gray-600">
+                                    👤 {customer.contact_person}
+                                  </div>
+                                )}
+                                {customer.phone && (
+                                  <div className="text-sm text-gray-600">
+                                    📞 {customer.phone}
+                                  </div>
+                                )}
+                                {customer.email1 && (
+                                  <div className="text-sm text-gray-600">
+                                    ✉️ {customer.email1}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {customer.attending_fair === true && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  🟢 Fuara Katılacak
+                                </span>
+                              )}
+                              {customer.attending_fair === false && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  🔴 Fuara Katılmayacak
+                                </span>
+                              )}
+                              {(customer.attending_fair === null || customer.attending_fair === undefined) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  💬 Görüşülüyor
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {customer.assigned_user ? (
+                                <div className="text-sm text-gray-600">
+                                  👨‍💼 @{customer.assigned_user.username}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">Atanmamış</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <button 
+                                  className="text-blue-600 hover:text-blue-900"
+                                  onClick={() => {
+                                    setSelectedCustomer(customer)
+                                    setShowDetailModal(true)
+                                  }}
+                                >
+                                  👁️
+                                </button>
+                                <button 
+                                  className="text-green-600 hover:text-green-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                  disabled
+                                >
+                                  ✏️
+                                </button>
+                                <button 
+                                  className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                  disabled
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {customers.length > itemsPerPage && (
+                  <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                      <button
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        Önceki
+                      </button>
+                      <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === getTotalPages()}
+                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        Sonraki
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700">
+                          <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
+                          {' - '}
+                          <span className="font-medium">
+                            {Math.min(currentPage * itemsPerPage, customers.length)}
+                          </span>
+                          {' / '}
+                          <span className="font-medium">{customers.length}</span>
+                          {' sonuç gösteriliyor'}
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                          <button
+                            onClick={goToPreviousPage}
+                            disabled={currentPage === 1}
+                            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Önceki</span>
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                          
+                          {Array.from({ length: getTotalPages() }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              onClick={() => goToPage(page)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                page === currentPage
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                          
+                          <button
+                            onClick={goToNextPage}
+                            disabled={currentPage === getTotalPages()}
+                            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Sonraki</span>
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </nav>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
