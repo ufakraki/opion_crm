@@ -7,6 +7,8 @@ import {
   getCustomerCompanies, 
   getCustomerCompaniesStats, 
   createCustomerCompany, 
+  updateCustomerCompany,
+  deleteCustomerCompany,
   getCompanyUsers,
   getSectors,
   getCountries,
@@ -40,6 +42,11 @@ export default function CustomersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerCompany | null>(null)
+  // Sil/Düzenle modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [customerToDelete, setCustomerToDelete] = useState<CustomerCompany | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [customerToEdit, setCustomerToEdit] = useState<CustomerCompany | null>(null)
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -289,6 +296,42 @@ export default function CustomersPage() {
       underDiscussion: underDiscussion,
       notContacted: notContacted
     }
+  }
+  
+  // Permission helper functions - ADIM 7.5
+  const canEditCustomer = (customer: CustomerCompany) => {
+    if (!profile) return false
+    
+    // Company admin tüm firmaları düzenleyebilir
+    if (profile.role === 'company_admin') {
+      return true
+    }
+    
+    // Company user sadece kendine atanan firmaları düzenleyebilir
+    if (profile.role === 'company_user') {
+      return customer.assigned_user_id === profile.id
+    }
+    
+    return false
+  }
+
+  const canDeleteCustomer = (customer: CustomerCompany) => {
+    if (!profile) return false
+    
+    // Sadece company admin silebilir
+    if (profile.role === 'company_admin') {
+      return true
+    }
+    
+    // Company user hiç silemez
+    return false
+  }
+
+  const canViewCustomer = (customer: CustomerCompany) => {
+    if (!profile) return false
+    
+    // Herkes görüntüleyebilir (kendi şirketindeki firmaları)
+    return true
   }
   
   // Modal ve form fonksiyonları
@@ -723,27 +766,76 @@ export default function CustomersPage() {
                             
                             {/* Right side - Action buttons */}
                             <div className="flex space-x-2">
-                              <button 
-                                className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                onClick={() => {
-                                  setSelectedCustomer(customer)
-                                  setShowDetailModal(true)
-                                }}
-                              >
-                                👁️ Görüntüle
-                              </button>
-                              <button 
-                                className="text-xs px-3 py-1 text-green-600 hover:bg-green-50 rounded transition-colors disabled:text-gray-400"
-                                disabled
-                              >
-                                ✏️ Düzenle
-                              </button>
-                              <button 
-                                className="text-xs px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:text-gray-400"
-                                disabled
-                              >
-                                🗑️ Sil
-                              </button>
+                              {/* Görüntüle - Herkes görüntüleyebilir */}
+                              {canViewCustomer(customer) && (
+                                <button 
+                                  className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  onClick={() => {
+                                    setSelectedCustomer(customer)
+                                    setShowDetailModal(true)
+                                  }}
+                                >
+                                  👁️ Görüntüle
+                                </button>
+                              )}
+                              
+                              {/* Düzenle - Yetki kontrolü ile */}
+                              {canEditCustomer(customer) ? (
+                                <button 
+                                  className="text-xs px-3 py-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                  onClick={() => {
+                                    setCustomerToEdit(customer);
+                                    // formData'yı müşteri verileriyle doldur
+                                    setFormData({
+                                      name: customer.name || '',
+                                      sector_id: customer.sector_id || '',
+                                      country_id: customer.country_id || '',
+                                      phone: customer.phone || '',
+                                      email1: customer.email1 || '',
+                                      email2: customer.email2 || '',
+                                      email3: customer.email3 || '',
+                                      address: customer.address || '',
+                                      website: customer.website || '',
+                                      contact_person: customer.contact_person || '',
+                                      notes: customer.notes || '',
+                                      attending_fair: customer.attending_fair ?? undefined,
+                                      assigned_user_id: customer.assigned_user_id || '',
+                                      fairs: [] // Fuar listesi sonradan çekilecek
+                                    });
+                                    setShowEditModal(true);
+                                  }}
+                                >
+                                  ✏️ Düzenle
+                                </button>
+                              ) : (
+                                <button 
+                                  className="text-xs px-3 py-1 text-gray-400 cursor-not-allowed rounded"
+                                  disabled
+                                  title="Bu firmayı düzenleme yetkiniz yok"
+                                >
+                                  ✏️ Düzenle
+                                </button>
+                              )}
+                              {/* Sil - Yetki kontrolü ile */}
+                              {canDeleteCustomer(customer) ? (
+                                <button 
+                                  className="text-xs px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  onClick={() => {
+                                    setCustomerToDelete(customer);
+                                    setShowDeleteModal(true);
+                                  }}
+                                >
+                                  🗑️ Sil
+                                </button>
+                              ) : (
+                                <button 
+                                  className="text-xs px-3 py-1 text-gray-400 cursor-not-allowed rounded"
+                                  disabled
+                                  title="Bu firmayı silme yetkiniz yok"
+                                >
+                                  🗑️ Sil
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -835,27 +927,80 @@ export default function CustomersPage() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
-                                <button 
-                                  className="text-blue-600 hover:text-blue-900"
-                                  onClick={() => {
-                                    setSelectedCustomer(customer)
-                                    setShowDetailModal(true)
-                                  }}
-                                >
-                                  👁️
-                                </button>
-                                <button 
-                                  className="text-green-600 hover:text-green-900 disabled:text-gray-400 disabled:cursor-not-allowed"
-                                  disabled
-                                >
-                                  ✏️
-                                </button>
-                                <button 
-                                  className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
-                                  disabled
-                                >
-                                  🗑️
-                                </button>
+                                {/* Görüntüle - Herkes görüntüleyebilir */}
+                                {canViewCustomer(customer) && (
+                                  <button 
+                                    className="text-blue-600 hover:text-blue-900"
+                                    onClick={() => {
+                                      setSelectedCustomer(customer)
+                                      setShowDetailModal(true)
+                                    }}
+                                    title="Detaylarını görüntüle"
+                                  >
+                                    👁️
+                                  </button>
+                                )}
+                                
+                                {/* Düzenle - Yetki kontrolü ile */}
+                                {canEditCustomer(customer) ? (
+                                  <button 
+                                    className="text-green-600 hover:text-green-900"
+                                    onClick={() => {
+                                      setCustomerToEdit(customer);
+                                      // formData'yı müşteri verileriyle doldur
+                                      setFormData({
+                                        name: customer.name || '',
+                                        sector_id: customer.sector_id || '',
+                                        country_id: customer.country_id || '',
+                                        phone: customer.phone || '',
+                                        email1: customer.email1 || '',
+                                        email2: customer.email2 || '',
+                                        email3: customer.email3 || '',
+                                        address: customer.address || '',
+                                        website: customer.website || '',
+                                        contact_person: customer.contact_person || '',
+                                        notes: customer.notes || '',
+                                        attending_fair: customer.attending_fair ?? undefined,
+                                        assigned_user_id: customer.assigned_user_id || '',
+                                        fairs: [] // Fuar listesi sonradan çekilecek
+                                      });
+                                      setShowEditModal(true);
+                                    }}
+                                    title="Düzenle"
+                                  >
+                                    ✏️
+                                  </button>
+                                ) : (
+                                  <button 
+                                    className="text-gray-400 cursor-not-allowed"
+                                    disabled
+                                    title="Bu firmayı düzenleme yetkiniz yok"
+                                  >
+                                    ✏️
+                                  </button>
+                                )}
+                                
+                                {/* Sil - Yetki kontrolü ile */}
+                                {canDeleteCustomer(customer) ? (
+                                  <button 
+                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => {
+                                      setCustomerToDelete(customer);
+                                      setShowDeleteModal(true);
+                                    }}
+                                    title="Sil"
+                                  >
+                                    🗑️
+                                  </button>
+                                ) : (
+                                  <button 
+                                    className="text-gray-400 cursor-not-allowed"
+                                    disabled
+                                    title="Bu firmayı silme yetkiniz yok"
+                                  >
+                                    🗑️
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1126,7 +1271,7 @@ export default function CustomersPage() {
                     value={formData.address}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Şehir, Ülke veya tam adres (Örn: İstanbul, Türkiye)"
+                    placeholder="Şehir ve tam adres"
                   />
                 </div>
 
@@ -1492,12 +1637,64 @@ export default function CustomersPage() {
                 >
                   Kapat
                 </button>
-                <button
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
-                  disabled
-                >
-                  ✏️ Düzenle (Yakında)
-                </button>
+                {/* Düzenle ve Sil butonları - Yetki kontrollü */}
+                {canEditCustomer(selectedCustomer) ? (
+                  <button
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    onClick={() => {
+                      setCustomerToEdit(selectedCustomer);
+                      // formData'yı müşteri verileriyle doldur
+                      setFormData({
+                        name: selectedCustomer.name || '',
+                        sector_id: selectedCustomer.sector_id || '',
+                        country_id: selectedCustomer.country_id || '',
+                        phone: selectedCustomer.phone || '',
+                        email1: selectedCustomer.email1 || '',
+                        email2: selectedCustomer.email2 || '',
+                        email3: selectedCustomer.email3 || '',
+                        address: selectedCustomer.address || '',
+                        website: selectedCustomer.website || '',
+                        contact_person: selectedCustomer.contact_person || '',
+                        notes: selectedCustomer.notes || '',
+                        attending_fair: selectedCustomer.attending_fair ?? undefined,
+                        assigned_user_id: selectedCustomer.assigned_user_id || '',
+                        fairs: [] // Fuar listesi sonradan çekilecek
+                      });
+                      setShowEditModal(true);
+                      setShowDetailModal(false);
+                    }}
+                  >
+                    ✏️ Düzenle
+                  </button>
+                ) : (
+                  <button
+                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed"
+                    disabled
+                    title="Bu firmayı düzenleme yetkiniz yok"
+                  >
+                    ✏️ Düzenle
+                  </button>
+                )}
+                {canDeleteCustomer(selectedCustomer) ? (
+                  <button
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    onClick={() => {
+                      setCustomerToDelete(selectedCustomer);
+                      setShowDeleteModal(true);
+                      setShowDetailModal(false);
+                    }}
+                  >
+                    🗑️ Sil
+                  </button>
+                ) : (
+                  <button
+                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed"
+                    disabled
+                    title="Bu firmayı silme yetkiniz yok"
+                  >
+                    🗑️ Sil
+                  </button>
+                )}
               </div>
             </div>          </div>
         </div>
@@ -1845,6 +2042,509 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
-    </div>
+    {/* Silme Onay Modalı */}
+    {showDeleteModal && customerToDelete && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Silme Onayı</h3>
+            <button
+              onClick={() => {
+                setShowDeleteModal(false);
+                setCustomerToDelete(null);
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-6 py-6">
+            <p className="text-gray-700 mb-4">
+              <span className="font-semibold text-red-600">{customerToDelete.name}</span> adlı firma kartını silmek istediğinize emin misiniz?
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setCustomerToDelete(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!customerToDelete.id) {
+                      alert('Geçersiz firma kartı!');
+                      return;
+                    }
+                    
+                    console.log('🔄 Deleting customer:', customerToDelete.id);
+                    
+                    const result = await deleteCustomerCompany(customerToDelete.id);
+                    
+                    if (result.error) {
+                      console.error('❌ Error deleting customer:', result.error);
+                      alert('Firma kartı silinirken hata oluştu!');
+                    } else {
+                      console.log('✅ Customer deleted successfully');
+                      
+                      // Modalı kapat
+                      setShowDeleteModal(false);
+                      setCustomerToDelete(null);
+                      
+                      // Verileri yenile
+                      if (companyId) {
+                        await fetchCustomerData(companyId as string);
+                      }
+                      
+                      alert('✅ Firma kartı başarıyla silindi!');
+                    }
+                  } catch (error) {
+                    console.error('❌ Unexpected error deleting customer:', error);
+                    alert('Beklenmeyen bir hata oluştu!');
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Evet, Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Düzenleme Modalı */}
+    {showEditModal && customerToEdit && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Firma Kartını Düzenle</h3>
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setCustomerToEdit(null);
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Düzenleme Formu - Yeni Firma Oluşturma ile Aynı */}
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setCreating(true);
+            
+            try {
+              if (!customerToEdit.id) {
+                alert('Geçersiz firma kartı!');
+                return;
+              }
+              
+              console.log('🔄 Updating customer with form data:', formData);
+              
+              // CustomerCompany tipinde update data'sı hazırla
+              const updateData: Partial<CustomerCompany> = {
+                name: formData.name,
+                sector_id: formData.sector_id || undefined,
+                country_id: formData.country_id || undefined,
+                phone: formData.phone || undefined,
+                email1: formData.email1 || undefined,
+                email2: formData.email2 || undefined,
+                email3: formData.email3 || undefined,
+                address: formData.address || undefined,
+                website: formData.website || undefined,
+                contact_person: formData.contact_person || undefined,
+                notes: formData.notes || undefined,
+                attending_fair: formData.attending_fair,
+                assigned_user_id: formData.assigned_user_id || undefined
+              };
+              
+              const result = await updateCustomerCompany(customerToEdit.id, updateData);
+              
+              if (result.error) {
+                console.error('❌ Error updating customer:', result.error);
+                alert('Firma kartı güncellenirken hata oluştu!');
+              } else {
+                console.log('✅ Customer updated successfully:', result.data);
+                
+                // Eğer fairs seçiliyse, önce eskilerini sil, sonra yenilerini ekle
+                if (formData.fairs && formData.fairs.length > 0) {
+                  // Önce mevcut fuar bağlantılarını sil
+                  await supabase
+                    .from('customer_companies_fairs')
+                    .delete()
+                    .eq('customer_company_id', customerToEdit.id);
+                  
+                  // Yeni fuar bağlantılarını ekle
+                  await supabase.from('customer_companies_fairs').insert(
+                    formData.fairs.map(fair_id => ({ 
+                      customer_company_id: customerToEdit.id, 
+                      fair_id 
+                    }))
+                  );
+                } else {
+                  // Fuar seçimi yoksa, mevcut bağlantıları da sil
+                  await supabase
+                    .from('customer_companies_fairs')
+                    .delete()
+                    .eq('customer_company_id', customerToEdit.id);
+                }
+                
+                alert('✅ Firma kartı başarıyla güncellendi!');
+                
+                setShowEditModal(false);
+                setCustomerToEdit(null);
+                resetForm();
+                
+                // Verileri yenile
+                if (companyId) {
+                  await fetchCustomerData(companyId as string);
+                }
+              }
+              
+            } catch (error) {
+              console.error('❌ Unexpected error updating customer:', error);
+              alert('Beklenmeyen bir hata oluştu!');
+            } finally {
+              setCreating(false);
+            }
+          }} className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Firma Adı */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Firma Adı *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Örn: ABC Teknoloji Ltd. Şti."
+                />
+              </div>
+
+              {/* Sektör Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Sektör *
+                </label>
+                <select
+                  name="sector_id"
+                  value={formData.sector_id}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Sektör Seçin</option>
+                  {sectors.map((sector) => (
+                    <option key={sector.id} value={sector.id}>{sector.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Ülke Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ülke *
+                </label>
+                <select
+                  name="country_id"
+                  value={formData.country_id}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Ülke Seçin</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id}>{country.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Telefon */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefon
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="+90 (XXX) XXX-XXXX"
+                />
+              </div>
+
+              {/* İletişim Kişisi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  İletişim Kişisi
+                </label>
+                <input
+                  type="text"
+                  name="contact_person"
+                  value={formData.contact_person}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Ad Soyad / Pozisyon"
+                />
+              </div>
+
+              {/* Email 1 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email 1
+                </label>
+                <input
+                  type="email"
+                  name="email1"
+                  value={formData.email1}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="info@firma.com"
+                />
+              </div>
+
+              {/* Email 2 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email 2
+                </label>
+                <input
+                  type="email"
+                  name="email2"
+                  value={formData.email2}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="satış@firma.com"
+                />
+              </div>
+
+              {/* Email 3 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email 3
+                </label>
+                <input
+                  type="email"
+                  name="email3"
+                  value={formData.email3}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="destek@firma.com"
+                />
+              </div>
+
+              {/* Website */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Website
+                </label>
+                <input
+                  type="text"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="www.firma.com"
+                />
+              </div>
+
+              {/* Adres */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adres
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Şehir ve tam adres"
+                />
+              </div>
+
+              {/* Fuar Adı - Çoklu Seçim */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fuar Adı
+                </label>
+                <select
+                  name="fairs"
+                  multiple
+                  value={formData.fairs}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 min-h-[100px]"
+                >
+                  {fairs.map((fair) => (
+                    <option key={fair.id} value={fair.id}>
+                      {fair.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                </p>
+              </div>
+
+              {/* Notlar */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notlar
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Bu firma hakkında notlar, hatırlatıcılar..."
+                />
+              </div>
+
+              {/* Atanan Kullanıcı Bilgisi */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Atanan Kullanıcı
+                </label>
+                
+                {profile?.role === 'company_admin' ? (
+                  // Company Admin için dropdown
+                  <div className="space-y-2">
+                    <select
+                      name="assigned_user_id"
+                      value={formData.assigned_user_id}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Kullanıcı Seçin</option>
+                      {companyUsers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.full_name} (@{user.username})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500">
+                      {formData.assigned_user_id ? 
+                        'Seçilen kullanıcıya atanacak' : 
+                        'Kullanıcı seçilmezse mevcut atama korunacak'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  // Company User için mevcut durum
+                  <div className="bg-gray-50 border border-gray-300 rounded-md px-3 py-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-5 text-gray-400">👨‍💼</span>
+                      <span className="ml-2 font-medium">
+                        {customerToEdit.assigned_user ? 
+                          `${customerToEdit.assigned_user.full_name} (@${customerToEdit.assigned_user.username})` : 
+                          'Atanmamış'
+                        }
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Company user olarak atama değiştiremezsiniz
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Fuar Katılım Durumu - Checkbox'lar */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fuar Katılım Durumu
+                </label>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="attending_fair"
+                    checked={formData.attending_fair === true}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, attending_fair: true }))
+                      } else {
+                        setFormData(prev => ({ ...prev, attending_fair: undefined }))
+                      }
+                    }}
+                    className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-700">
+                    Firma Fuara Katılıyor
+                  </label>
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="attending_fair"
+                    checked={formData.attending_fair === false}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, attending_fair: false }))
+                      } else {
+                        setFormData(prev => ({ ...prev, attending_fair: undefined }))
+                      }
+                    }}
+                    className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-700">
+                    Firma Fuara Katılmıyor
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setCustomerToEdit(null);
+                  resetForm();
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                disabled={creating}
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={creating || !formData.name.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {creating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  <>
+                    ✏️ Değişiklikleri Kaydet
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+  </div>
   )
 }
