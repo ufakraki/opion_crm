@@ -907,6 +907,13 @@ export default function CustomersPage() {
                                       assigned_user_id: customer.assigned_user_id || '',
                                       fairs: customerFairs
                                     });
+                                    
+                                    console.log('🔍 DEBUG - Card Edit - Customer data:', customer);
+                                    console.log('🔍 DEBUG - Card Edit - Set formData:', {
+                                      sector_id: customer.sector_id ? customer.sector_id.toString() : '',
+                                      country_id: customer.country_id ? customer.country_id.toString() : ''
+                                    });
+                                    
                                     setShowEditModal(true);
                                   }}
                                 >
@@ -1261,7 +1268,7 @@ export default function CustomersPage() {
                   >
                     <option value="">Sektör Seçin</option>
                     {sectors.map((sector) => (
-                      <option key={sector.id} value={sector.id}>{sector.name}</option>
+                      <option key={sector.id} value={sector.id?.toString() || ''}>{sector.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1280,7 +1287,7 @@ export default function CustomersPage() {
                   >
                     <option value="">Ülke Seçin</option>
                     {countries.map((country) => (
-                      <option key={country.id} value={country.id}>{country.name}</option>
+                      <option key={country.id} value={country.id?.toString() || ''}>{country.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1818,6 +1825,14 @@ export default function CustomersPage() {
                         assigned_user_id: selectedCustomer.assigned_user_id || '',
                         fairs: customerFairs
                       });
+                      
+                      console.log('🔍 DEBUG - Customer data:', selectedCustomer);
+                      console.log('🔍 DEBUG - Set formData:', {
+                        sector_id: selectedCustomer.sector_id ? selectedCustomer.sector_id.toString() : '',
+                        country_id: selectedCustomer.country_id ? selectedCustomer.country_id.toString() : ''
+                      });
+                      console.log('🔍 DEBUG - Available sectors:', sectors);
+                      console.log('🔍 DEBUG - Available countries:', countries);
                       setCustomerToEdit(selectedCustomer);
                       setShowEditModal(true);
                       setShowDetailModal(false);
@@ -1986,9 +2001,13 @@ export default function CustomersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="">Sektör Seçin</option>
-                  {sectors.map((sector) => (
-                    <option key={sector.id} value={sector.id}>{sector.name}</option>
-                  ))}
+                  {sectors.map((sector) => {
+                    const sectorValue = sector.id?.toString() || '';
+                    console.log('🔍 DEBUG - Edit Modal Sector:', sector.id, 'vs formData.sector_id:', formData.sector_id, 'match:', sectorValue === formData.sector_id);
+                    return (
+                      <option key={sector.id} value={sectorValue}>{sector.name}</option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -2005,9 +2024,13 @@ export default function CustomersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="">Ülke Seçin</option>
-                  {countries.map((country) => (
-                    <option key={country.id} value={country.id}>{country.name}</option>
-                  ))}
+                  {countries.map((country) => {
+                    const countryValue = country.id?.toString() || '';
+                    console.log('🔍 DEBUG - Edit Modal Country:', country.id, 'vs formData.country_id:', formData.country_id, 'match:', countryValue === formData.country_id);
+                    return (
+                      <option key={country.id} value={countryValue}>{country.name}</option>
+                    );
+                  })}
                 </select>
               </div>
 

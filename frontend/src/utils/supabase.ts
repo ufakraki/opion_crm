@@ -666,6 +666,8 @@ export const createCustomerCompany = async (customerData: CustomerCompany) => {
         // Data'yı temizle ve gerekli alanları hazırla
         const cleanData = {
             name: customerData.name,
+            sector_id: customerData.sector_id || null,
+            country_id: customerData.country_id || null,
             sector: customerData.sector || null,
             phone: customerData.phone || null,
             email1: customerData.email1 || null,
