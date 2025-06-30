@@ -263,6 +263,8 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
   - [x] Kullanıcı atama sistemi
   - [x] Detay görüntüleme modalları
   - [x] Canlı istatistikler
+  - [x] **Form Reset Sistemi**: Yeni firma kartı modalında otomatik form sıfırlama
+  - [x] **Browser AutoFill Kontrolü**: Otomatik doldurma ve cache problemleri çözüldü
   - [ ] **ADIM 7**: Liste görünümü ve pagination (Geliştiriliyor)
   - [ ] **ADIM 7**: Gelişmiş düzenleme sistemi (Geliştiriliyor)
   - [ ] **ADIM 7**: Akıllı arama ve filtreleme (Geliştiriliyor)
@@ -343,6 +345,8 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için LICENSE dosyas
 ## Changelog
 
 ### v1.2.0 (30 Haziran 2025) - ADIM 7: Gelişmiş Firma Kartı Yönetimi 🚧
+- ✅ **Form Reset Problemi**: Yeni firma kartı açıldığında eski verilerin otomatik gelmesi sorunu çözüldü
+- ✅ **AutoComplete Devre Dışı**: Browser autofill ve form cache problemleri çözüldü
 - 🚧 **3 Email Alanı Sistemi**: Firma kartlarında email1, email2, email3 alanları
 - 🚧 **Liste Görünümü**: Kart görünümünden table/liste görünümüne geçiş
 - 🚧 **Pagination Sistemi**: 25 firma/sayfa navigation sistemi

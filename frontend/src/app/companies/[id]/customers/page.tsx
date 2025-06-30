@@ -626,7 +626,10 @@ export default function CustomersPage() {
                 
                 <button 
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => {
+                    resetForm()
+                    setShowCreateModal(true)
+                  }}
                 >
                   + Yeni Firma Kartı
                 </button>
@@ -684,7 +687,10 @@ export default function CustomersPage() {
                   {/* Main CTA Button */}
                   <button 
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={() => {
+                      resetForm()
+                      setShowCreateModal(true)
+                    }}
                   >
                     🏢 İlk Firma Kartımı Oluştur
                   </button>
@@ -906,12 +912,6 @@ export default function CustomersPage() {
                                       attending_fair: customer.attending_fair ?? undefined,
                                       assigned_user_id: customer.assigned_user_id || '',
                                       fairs: customerFairs
-                                    });
-                                    
-                                    console.log('🔍 DEBUG - Card Edit - Customer data:', customer);
-                                    console.log('🔍 DEBUG - Card Edit - Set formData:', {
-                                      sector_id: customer.sector_id ? customer.sector_id.toString() : '',
-                                      country_id: customer.country_id ? customer.country_id.toString() : ''
                                     });
                                     
                                     setShowEditModal(true);
@@ -1826,13 +1826,6 @@ export default function CustomersPage() {
                         fairs: customerFairs
                       });
                       
-                      console.log('🔍 DEBUG - Customer data:', selectedCustomer);
-                      console.log('🔍 DEBUG - Set formData:', {
-                        sector_id: selectedCustomer.sector_id ? selectedCustomer.sector_id.toString() : '',
-                        country_id: selectedCustomer.country_id ? selectedCustomer.country_id.toString() : ''
-                      });
-                      console.log('🔍 DEBUG - Available sectors:', sectors);
-                      console.log('🔍 DEBUG - Available countries:', countries);
                       setCustomerToEdit(selectedCustomer);
                       setShowEditModal(true);
                       setShowDetailModal(false);
@@ -2001,13 +1994,9 @@ export default function CustomersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="">Sektör Seçin</option>
-                  {sectors.map((sector) => {
-                    const sectorValue = sector.id?.toString() || '';
-                    console.log('🔍 DEBUG - Edit Modal Sector:', sector.id, 'vs formData.sector_id:', formData.sector_id, 'match:', sectorValue === formData.sector_id);
-                    return (
-                      <option key={sector.id} value={sectorValue}>{sector.name}</option>
-                    );
-                  })}
+                  {sectors.map((sector) => (
+                    <option key={sector.id} value={sector.id?.toString() || ''}>{sector.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -2024,13 +2013,9 @@ export default function CustomersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="">Ülke Seçin</option>
-                  {countries.map((country) => {
-                    const countryValue = country.id?.toString() || '';
-                    console.log('🔍 DEBUG - Edit Modal Country:', country.id, 'vs formData.country_id:', formData.country_id, 'match:', countryValue === formData.country_id);
-                    return (
-                      <option key={country.id} value={countryValue}>{country.name}</option>
-                    );
-                  })}
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id?.toString() || ''}>{country.name}</option>
+                  ))}
                 </select>
               </div>
 
