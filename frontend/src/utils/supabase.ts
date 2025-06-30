@@ -740,10 +740,14 @@ export const updateCustomerCompany = async (id: string, updateData: Partial<Cust
     try {
         console.log('Updating customer company:', id, updateData);
         
+        // Fairs alanını ayır (bu alanı join tablosunda güncelleyeceğiz)
+        const { fairs, ...customerUpdateData } = updateData as any;
+        
+        // Ana customer company verisini güncelle
         const { data, error } = await supabase
             .from('customer_companies')
             .update({
-                ...updateData,
+                ...customerUpdateData,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
@@ -752,6 +756,34 @@ export const updateCustomerCompany = async (id: string, updateData: Partial<Cust
         if (error) {
             console.error('Error updating customer company:', error);
             return { data: null, error };
+        }
+        
+        // Eğer fairs bilgisi varsa join tablosunu güncelle
+        if (fairs !== undefined) {
+            console.log('Updating fairs for customer company:', id, fairs);
+            
+            // Önce mevcut fuar ilişkilerini sil
+            await supabase
+                .from('customer_companies_fairs')
+                .delete()
+                .eq('customer_company_id', id);
+            
+            // Yeni fuar ilişkilerini ekle
+            if (fairs && fairs.length > 0) {
+                const fairInserts = fairs.map((fair_id: string) => ({
+                    customer_company_id: id,
+                    fair_id: fair_id
+                }));
+                
+                const { error: fairError } = await supabase
+                    .from('customer_companies_fairs')
+                    .insert(fairInserts);
+                
+                if (fairError) {
+                    console.error('Error updating customer company fairs:', fairError);
+                    // Fair güncelleme hatası olsa bile ana güncelleme başarılı
+                }
+            }
         }
         
         console.log('Customer company updated successfully:', data);
@@ -994,5 +1026,28 @@ export const deleteFair = async (fairId: string) => {
     } catch (error) {
         console.error('Unexpected error deleting fair:', error);
         return { data: null, error };
+    }
+};
+
+// Get fairs for a specific customer company (for editing)
+export const getCustomerCompanyFairs = async (customerCompanyId: string) => {
+    try {
+        console.log('Fetching fairs for customer company:', customerCompanyId);
+        const { data, error } = await supabase
+            .from('customer_companies_fairs')
+            .select('fair_id')
+            .eq('customer_company_id', customerCompanyId);
+        
+        if (error) {
+            console.error('Error fetching customer company fairs:', error);
+            return { data: [], error };
+        }
+        
+        const fairIds = data?.map(item => item.fair_id) || [];
+        console.log('Found fair IDs:', fairIds);
+        return { data: fairIds, error: null };
+    } catch (error) {
+        console.error('Unexpected error fetching customer company fairs:', error);
+        return { data: [], error };
     }
 };

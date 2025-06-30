@@ -13,6 +13,7 @@ import {
   getSectors,
   getCountries,
   getFairs,
+  getCustomerCompanyFairs,
   CustomerCompany,
   Sector,
   Country,
@@ -32,7 +33,54 @@ export default function CustomersPage() {
   const [sectors, setSectors] = useState<Sector[]>([])
   const [countries, setCountries] = useState<Country[]>([])
   const [fairs, setFairs] = useState<Fair[]>([])
-  
+
+  // CustomerFairsList component - müşterinin fuarlarını gösterir
+  const CustomerFairsList = ({ customerId }: { customerId: string }) => {
+    const [customerFairs, setCustomerFairs] = useState<string[]>([])
+    const [fairsLoading, setFairsLoading] = useState(true)
+
+    useEffect(() => {
+      async function fetchCustomerFairs() {
+        setFairsLoading(true)
+        try {
+          const result = await getCustomerCompanyFairs(customerId)
+          setCustomerFairs(result.data || [])
+        } catch (error) {
+          console.error('Error fetching customer fairs:', error)
+        } finally {
+          setFairsLoading(false)
+        }
+      }
+      
+      fetchCustomerFairs()
+    }, [customerId])
+
+    if (fairsLoading) {
+      return <div className="text-sm text-gray-500">Fuar bilgileri yükleniyor...</div>
+    }
+
+    if (customerFairs.length === 0) {
+      return <div className="text-sm text-gray-500 italic">Bu firma henüz hiçbir fuara kayıtlı değil</div>
+    }
+
+    const customerFairNames = fairs.filter(fair => customerFairs.includes(fair.id!)).map(fair => fair.name)
+
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {customerFairNames.map((fairName, index) => (
+            <div key={index} className="flex items-center bg-blue-50 rounded-lg px-3 py-2">
+              <span className="text-blue-600 mr-2">🎪</span>
+              <span className="text-sm font-medium text-blue-800">{fairName}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Toplam {customerFairs.length} fuara kayıtlı
+        </p>
+      </div>
+    )
+  }
   // View and pagination state
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
   const [currentPage, setCurrentPage] = useState(1)
@@ -357,15 +405,8 @@ export default function CustomersPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
     const { name, value } = target;
-    if (target.tagName === 'SELECT' && (target as HTMLSelectElement).multiple) {
-      // Çoklu seçimli dropdown için
-      const options = (target as HTMLSelectElement).options;
-      const selected: string[] = [];
-      for (let i = 0; i < options.length; i++) {
-        if (options[i].selected) selected.push(options[i].value);
-      }
-      setFormData(prev => ({ ...prev, [name]: selected }));
-    } else if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
+    
+    if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
       const checked = (target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
@@ -415,6 +456,60 @@ export default function CustomersPage() {
       }
     } catch (error) {
       console.error('❌ Unexpected error creating customer:', error)
+      alert('Beklenmeyen bir hata oluştu!')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleEditCustomer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!customerToEdit) return
+    
+    setCreating(true)
+
+    try {
+      console.log('🔄 Updating customer with form data:', formData)
+      
+      const updateData = {
+        name: formData.name,
+        sector_id: formData.sector_id,
+        country_id: formData.country_id,
+        phone: formData.phone,
+        email1: formData.email1,
+        email2: formData.email2,
+        email3: formData.email3,
+        address: formData.address,
+        website: formData.website,
+        contact_person: formData.contact_person,
+        notes: formData.notes,
+        attending_fair: formData.attending_fair,
+        assigned_user_id: formData.assigned_user_id || undefined,
+        fairs: formData.fairs
+      }
+
+      const result = await updateCustomerCompany(customerToEdit.id!, updateData)
+      
+      if (result.error) {
+        console.error('❌ Error updating customer:', result.error)
+        alert('Firma kartı güncellenirken hata oluştu!')
+      } else {
+        console.log('✅ Customer updated successfully:', result.data)
+        
+        // Formu temizle ve modalı kapat
+        resetForm()
+        setShowEditModal(false)
+        setCustomerToEdit(null)
+        
+        // Verileri yenile
+        if (companyId) {
+          await fetchCustomerData(companyId as string)
+        }
+        
+        alert('✅ Firma kartı başarıyla güncellendi!')
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error updating customer:', error)
       alert('Beklenmeyen bir hata oluştu!')
     } finally {
       setCreating(false)
@@ -783,13 +878,23 @@ export default function CustomersPage() {
                               {canEditCustomer(customer) ? (
                                 <button 
                                   className="text-xs px-3 py-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-                                  onClick={() => {
+                                  onClick={async () => {
                                     setCustomerToEdit(customer);
+                                    
+                                    // Önce müşterinin fuarlarını çek
+                                    let customerFairs: string[] = [];
+                                    try {
+                                      const fairsResult = await getCustomerCompanyFairs(customer.id!);
+                                      customerFairs = (fairsResult.data || []).map(id => String(id));
+                                    } catch (error) {
+                                      console.error('Müşteri fuarları çekilemedi:', error);
+                                    }
+                                    
                                     // formData'yı müşteri verileriyle doldur
                                     setFormData({
                                       name: customer.name || '',
-                                      sector_id: customer.sector_id || '',
-                                      country_id: customer.country_id || '',
+                                      sector_id: customer.sector_id ? customer.sector_id.toString() : '',
+                                      country_id: customer.country_id ? customer.country_id.toString() : '',
                                       phone: customer.phone || '',
                                       email1: customer.email1 || '',
                                       email2: customer.email2 || '',
@@ -800,7 +905,7 @@ export default function CustomersPage() {
                                       notes: customer.notes || '',
                                       attending_fair: customer.attending_fair ?? undefined,
                                       assigned_user_id: customer.assigned_user_id || '',
-                                      fairs: [] // Fuar listesi sonradan çekilecek
+                                      fairs: customerFairs
                                     });
                                     setShowEditModal(true);
                                   }}
@@ -945,13 +1050,23 @@ export default function CustomersPage() {
                                 {canEditCustomer(customer) ? (
                                   <button 
                                     className="text-green-600 hover:text-green-900"
-                                    onClick={() => {
+                                    onClick={async () => {
                                       setCustomerToEdit(customer);
+                                      
+                                      // Önce müşterinin fuarlarını çek
+                                      let customerFairs: string[] = [];
+                                      try {
+                                        const fairsResult = await getCustomerCompanyFairs(customer.id!);
+                                        customerFairs = (fairsResult.data || []).map(id => String(id));
+                                      } catch (error) {
+                                        console.error('Müşteri fuarları çekilemedi:', error);
+                                      }
+                                      
                                       // formData'yı müşteri verileriyle doldur
                                       setFormData({
                                         name: customer.name || '',
-                                        sector_id: customer.sector_id || '',
-                                        country_id: customer.country_id || '',
+                                        sector_id: customer.sector_id ? customer.sector_id.toString() : '',
+                                        country_id: customer.country_id ? customer.country_id.toString() : '',
                                         phone: customer.phone || '',
                                         email1: customer.email1 || '',
                                         email2: customer.email2 || '',
@@ -962,7 +1077,7 @@ export default function CustomersPage() {
                                         notes: customer.notes || '',
                                         attending_fair: customer.attending_fair ?? undefined,
                                         assigned_user_id: customer.assigned_user_id || '',
-                                        fairs: [] // Fuar listesi sonradan çekilecek
+                                        fairs: customerFairs
                                       });
                                       setShowEditModal(true);
                                     }}
@@ -1275,26 +1390,51 @@ export default function CustomersPage() {
                   />
                 </div>
 
-                {/* Fuar Adı - Çoklu Seçim */}
+                {/* Fuar Seçimi - Checkbox Listesi */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fuar Adı
+                    Fuar Seçimi
                   </label>
-                  <select
-                    name="fairs"
-                    multiple
-                    value={formData.fairs}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
-                  >
-                    {fairs.map((fair) => (
-                      <option key={fair.id} value={fair.id}>
-                        {fair.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="border border-gray-300 rounded-md p-3 bg-gray-50 max-h-32 overflow-y-auto">
+                    {fairs.length > 0 ? (
+                      <div className="space-y-2">
+                        {fairs.map((fair) => (
+                          <div key={fair.id} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`create-fair-${fair.id}`}
+                              checked={fair.id ? formData.fairs.includes(fair.id) : false}
+                              onChange={(e) => {
+                                if (!fair.id) return; // Guard clause
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    fairs: [...prev.fairs, fair.id!]
+                                  }))
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    fairs: prev.fairs.filter(id => id !== fair.id)
+                                  }))
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor={`create-fair-${fair.id}`} className="ml-2 text-sm text-gray-700">
+                              {fair.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Henüz fuar tanımlanmamış</p>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                    {formData.fairs.length > 0 
+                      ? `${formData.fairs.length} fuar seçili` 
+                      : 'İstediğiniz fuarları seçebilirsiniz'
+                    } ({fairs.length} fuar mevcut)
                   </p>
                 </div>
 
@@ -1592,6 +1732,12 @@ export default function CustomersPage() {
                   </div>
                 </div>
 
+                {/* Fuar Bilgileri */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Fuar Bilgileri</h3>
+                  <CustomerFairsList customerId={selectedCustomer.id!} />
+                </div>
+
                 {/* Notlar */}
                 {selectedCustomer.notes && (
                   <div className="border-t border-gray-200 pt-6">
@@ -1641,13 +1787,25 @@ export default function CustomersPage() {
                 {canEditCustomer(selectedCustomer) ? (
                   <button
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    onClick={() => {
+                    onClick={async () => {
                       setCustomerToEdit(selectedCustomer);
+                      
+                      // Önce müşterinin fuarlarını çek
+                      let customerFairs: string[] = [];
+                      try {
+                        if (selectedCustomer.id) {
+                          const fairsResult = await getCustomerCompanyFairs(selectedCustomer.id);
+                          customerFairs = (fairsResult.data || []).map(id => String(id));
+                        }
+                      } catch (error) {
+                        console.error('Müşteri fuarları çekilemedi:', error);
+                      }
+                      
                       // formData'yı müşteri verileriyle doldur
                       setFormData({
                         name: selectedCustomer.name || '',
-                        sector_id: selectedCustomer.sector_id || '',
-                        country_id: selectedCustomer.country_id || '',
+                        sector_id: selectedCustomer.sector_id ? selectedCustomer.sector_id.toString() : '',
+                        country_id: selectedCustomer.country_id ? selectedCustomer.country_id.toString() : '',
                         phone: selectedCustomer.phone || '',
                         email1: selectedCustomer.email1 || '',
                         email2: selectedCustomer.email2 || '',
@@ -1658,8 +1816,9 @@ export default function CustomersPage() {
                         notes: selectedCustomer.notes || '',
                         attending_fair: selectedCustomer.attending_fair ?? undefined,
                         assigned_user_id: selectedCustomer.assigned_user_id || '',
-                        fairs: [] // Fuar listesi sonradan çekilecek
+                        fairs: customerFairs
                       });
+                      setCustomerToEdit(selectedCustomer);
                       setShowEditModal(true);
                       setShowDetailModal(false);
                     }}
@@ -1885,26 +2044,51 @@ export default function CustomersPage() {
                   />
                 </div>
 
-                {/* Fuar Adı - Çoklu Seçim */}
+                {/* Fuar Seçimi - Checkbox Listesi */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fuar Adı
+                    Fuar Seçimi
                   </label>
-                  <select
-                    name="fairs"
-                    multiple
-                    value={formData.fairs}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
-                  >
-                    {fairs.map((fair) => (
-                      <option key={fair.id} value={fair.id}>
-                        {fair.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="border border-gray-300 rounded-md p-3 bg-gray-50 max-h-32 overflow-y-auto">
+                    {fairs.length > 0 ? (
+                      <div className="space-y-2">
+                        {fairs.map((fair) => (
+                          <div key={fair.id} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`create2-fair-${fair.id}`}
+                              checked={fair.id ? formData.fairs.includes(fair.id) : false}
+                              onChange={(e) => {
+                                if (!fair.id) return; // Guard clause
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    fairs: [...prev.fairs, fair.id!]
+                                  }))
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    fairs: prev.fairs.filter(id => id !== fair.id)
+                                  }))
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor={`create2-fair-${fair.id}`} className="ml-2 text-sm text-gray-700">
+                              {fair.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Henüz fuar tanımlanmamış</p>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                    {formData.fairs.length > 0 
+                      ? `${formData.fairs.length} fuar seçili` 
+                      : 'İstediğiniz fuarları seçebilirsiniz'
+                    } ({fairs.length} fuar mevcut)
                   </p>
                 </div>
 
@@ -2138,85 +2322,7 @@ export default function CustomersPage() {
           </div>
           
           {/* Düzenleme Formu - Yeni Firma Oluşturma ile Aynı */}
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            setCreating(true);
-            
-            try {
-              if (!customerToEdit.id) {
-                alert('Geçersiz firma kartı!');
-                return;
-              }
-              
-              console.log('🔄 Updating customer with form data:', formData);
-              
-              // CustomerCompany tipinde update data'sı hazırla
-              const updateData: Partial<CustomerCompany> = {
-                name: formData.name,
-                sector_id: formData.sector_id || undefined,
-                country_id: formData.country_id || undefined,
-                phone: formData.phone || undefined,
-                email1: formData.email1 || undefined,
-                email2: formData.email2 || undefined,
-                email3: formData.email3 || undefined,
-                address: formData.address || undefined,
-                website: formData.website || undefined,
-                contact_person: formData.contact_person || undefined,
-                notes: formData.notes || undefined,
-                attending_fair: formData.attending_fair,
-                assigned_user_id: formData.assigned_user_id || undefined
-              };
-              
-              const result = await updateCustomerCompany(customerToEdit.id, updateData);
-              
-              if (result.error) {
-                console.error('❌ Error updating customer:', result.error);
-                alert('Firma kartı güncellenirken hata oluştu!');
-              } else {
-                console.log('✅ Customer updated successfully:', result.data);
-                
-                // Eğer fairs seçiliyse, önce eskilerini sil, sonra yenilerini ekle
-                if (formData.fairs && formData.fairs.length > 0) {
-                  // Önce mevcut fuar bağlantılarını sil
-                  await supabase
-                    .from('customer_companies_fairs')
-                    .delete()
-                    .eq('customer_company_id', customerToEdit.id);
-                  
-                  // Yeni fuar bağlantılarını ekle
-                  await supabase.from('customer_companies_fairs').insert(
-                    formData.fairs.map(fair_id => ({ 
-                      customer_company_id: customerToEdit.id, 
-                      fair_id 
-                    }))
-                  );
-                } else {
-                  // Fuar seçimi yoksa, mevcut bağlantıları da sil
-                  await supabase
-                    .from('customer_companies_fairs')
-                    .delete()
-                    .eq('customer_company_id', customerToEdit.id);
-                }
-                
-                alert('✅ Firma kartı başarıyla güncellendi!');
-                
-                setShowEditModal(false);
-                setCustomerToEdit(null);
-                resetForm();
-                
-                // Verileri yenile
-                if (companyId) {
-                  await fetchCustomerData(companyId as string);
-                }
-              }
-              
-            } catch (error) {
-              console.error('❌ Unexpected error updating customer:', error);
-              alert('Beklenmeyen bir hata oluştu!');
-            } finally {
-              setCreating(false);
-            }
-          }} className="px-6 py-4">
+          <form onSubmit={handleEditCustomer} className="px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               {/* Firma Adı */}
@@ -2378,26 +2484,51 @@ export default function CustomersPage() {
                 />
               </div>
 
-              {/* Fuar Adı - Çoklu Seçim */}
+              {/* Fuar Seçimi - Checkbox Listesi */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fuar Adı
+                  Fuar Seçimi
                 </label>
-                <select
-                  name="fairs"
-                  multiple
-                  value={formData.fairs}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 min-h-[100px]"
-                >
-                  {fairs.map((fair) => (
-                    <option key={fair.id} value={fair.id}>
-                      {fair.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
+                  {fairs.length > 0 ? (
+                    <div className="space-y-2">
+                      {fairs.map((fair) => (
+                        <div key={fair.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`edit-fair-${fair.id}`}
+                            checked={fair.id ? formData.fairs.includes(fair.id) : false}
+                            onChange={(e) => {
+                              if (!fair.id) return; // Guard clause
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  fairs: [...prev.fairs, fair.id!]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  fairs: prev.fairs.filter(id => id !== fair.id)
+                                }));
+                              }
+                            }}
+                            className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                          />
+                          <label htmlFor={`edit-fair-${fair.id}`} className="ml-2 text-sm text-gray-700">
+                            {fair.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Henüz fuar eklenmemiş</p>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Ctrl/Cmd tuşu ile birden fazla fuar seçebilirsiniz. {fairs.length} fuar mevcut.
+                  {formData.fairs.length > 0 
+                    ? `${formData.fairs.length} fuar seçili` 
+                    : 'İstediğiniz fuarları seçebilirsiniz'
+                  } ({fairs.length} fuar mevcut)
                 </p>
               </div>
 
