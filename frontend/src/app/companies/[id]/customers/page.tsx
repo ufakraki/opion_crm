@@ -441,7 +441,6 @@ export default function CustomersPage() {
             formData.fairs.map(fair_id => ({ customer_company_id: customerCompanyId, fair_id }))
           );
         }
-        console.log('✅ Customer created successfully:', result.data)
         
         // Formu temizle ve modalı kapat
         resetForm()
@@ -469,8 +468,6 @@ export default function CustomersPage() {
     setCreating(true)
 
     try {
-      console.log('🔄 Updating customer with form data:', formData)
-      
       const updateData = {
         name: formData.name,
         sector_id: formData.sector_id,
@@ -494,7 +491,6 @@ export default function CustomersPage() {
         console.error('❌ Error updating customer:', result.error)
         alert('Firma kartı güncellenirken hata oluştu!')
       } else {
-        console.log('✅ Customer updated successfully:', result.data)
         
         // Formu temizle ve modalı kapat
         resetForm()
@@ -858,10 +854,14 @@ export default function CustomersPage() {
                         {/* Card Footer - Actions */}
                         <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg">
                           <div className="flex justify-between items-center">
-                            {/* Left side - Creation info */}
+                            {/* Left side - Date info */}
                             <div className="text-xs text-gray-400">
-                              {customer.created_at && (
+                              {customer.updated_at && customer.updated_at !== customer.created_at ? (
+                                <>Güncellendi: {new Date(customer.updated_at).toLocaleDateString('tr-TR')}</>
+                              ) : customer.created_at ? (
                                 <>Oluşturuldu: {new Date(customer.created_at).toLocaleDateString('tr-TR')}</>
+                              ) : (
+                                <>Tarih bilinmiyor</>
                               )}
                             </div>
                             
@@ -1760,12 +1760,23 @@ export default function CustomersPage() {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Tarih Bilgileri</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                     
-                    {selectedCustomer.created_at && (
+                    {/* Tek tarih gösterimi - updated_at varsa onu, yoksa created_at'ı göster */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {selectedCustomer.updated_at && 
+                         selectedCustomer.updated_at !== selectedCustomer.created_at 
+                         ? "Son Güncellenme" : "Oluşturulma Tarihi"}
+                      </label>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Oluşturulma Tarihi</label>
-                        <div>{new Date(selectedCustomer.created_at).toLocaleDateString('tr-TR')} {new Date(selectedCustomer.created_at).toLocaleTimeString('tr-TR')}</div>
+                        {selectedCustomer.updated_at && 
+                         selectedCustomer.updated_at !== selectedCustomer.created_at 
+                         ? new Date(selectedCustomer.updated_at).toLocaleDateString('tr-TR') + ' ' + new Date(selectedCustomer.updated_at).toLocaleTimeString('tr-TR')
+                         : selectedCustomer.created_at 
+                           ? new Date(selectedCustomer.created_at).toLocaleDateString('tr-TR') + ' ' + new Date(selectedCustomer.created_at).toLocaleTimeString('tr-TR')
+                           : 'Bilinmiyor'
+                        }
                       </div>
-                    )}
+                    </div>
                     
                     {selectedCustomer.last_contact_date && (
                       <div>
@@ -1906,15 +1917,12 @@ export default function CustomersPage() {
                       return;
                     }
                     
-                    console.log('🔄 Deleting customer:', customerToDelete.id);
-                    
                     const result = await deleteCustomerCompany(customerToDelete.id);
                     
                     if (result.error) {
                       console.error('❌ Error deleting customer:', result.error);
                       alert('Firma kartı silinirken hata oluştu!');
                     } else {
-                      console.log('✅ Customer deleted successfully');
                       
                       // Modalı kapat
                       setShowDeleteModal(false);
