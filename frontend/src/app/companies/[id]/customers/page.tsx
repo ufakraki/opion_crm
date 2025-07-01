@@ -310,8 +310,8 @@ export default function CustomersPage() {
       return {
         type: 'under_discussion',
         label: 'Görüşülüyor',
-        color: 'bg-yellow-100 text-yellow-800',
-        icon: '🟡'
+        color: 'bg-blue-100 text-blue-800',
+        icon: '🔵'
       }
     }
     
@@ -319,8 +319,8 @@ export default function CustomersPage() {
     return {
       type: 'not_contacted',
       label: 'Görüşülmedi',
-      color: 'bg-blue-100 text-blue-800',
-      icon: '🔵'
+      color: 'bg-yellow-100 text-yellow-800',
+      icon: '🟡'
     }
   }
 
@@ -656,8 +656,8 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>🟢 Fuara Katılan: {getUpdatedStats().attendingFair}</span>
                   <span>🔴 Fuara Katılmayan: {getUpdatedStats().notAttendingFair}</span>
-                  <span>� Görüşülüyor: {getUpdatedStats().underDiscussion}</span>
-                  <span>🔵 Görüşülmedi: {getUpdatedStats().notContacted}</span>
+                  <span>🔵 Görüşülüyor: {getUpdatedStats().underDiscussion}</span>
+                  <span>🟡 Görüşülmedi: {getUpdatedStats().notContacted}</span>
                 </div>
               </div>
             </div>
