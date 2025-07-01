@@ -86,6 +86,9 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(25) // Normal pagination - 25 firma per page
   
+  // Filtreleme state
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -259,13 +262,44 @@ export default function CustomersPage() {
   
   // Pagination helper functions
   const getPaginatedCustomers = () => {
+    // Önce filtreleme yap
+    let filteredCustomers = customers;
+    
+    if (statusFilter !== 'all') {
+      filteredCustomers = customers.filter(customer => {
+        // Company user sadece kendi atanan firmalarını görsün (filtrelerde)
+        if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
+          return false;
+        }
+        
+        const status = getCustomerStatus(customer);
+        return status.type === statusFilter;
+      });
+    }
+    // "Tümü" seçildiğinde company user da tüm şirket datasını görebilir
+    
+    // Sonra pagination yap
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    return customers.slice(startIndex, endIndex)
+    return filteredCustomers.slice(startIndex, endIndex)
   }
   
   const getTotalPages = () => {
-    return Math.ceil(customers.length / itemsPerPage)
+    // Filtrelenmiş veriye göre sayfa sayısı hesapla
+    let filteredCustomers = customers;
+    
+    if (statusFilter !== 'all') {
+      filteredCustomers = customers.filter(customer => {
+        if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
+          return false;
+        }
+        const status = getCustomerStatus(customer);
+        return status.type === statusFilter;
+      });
+    }
+    // "Tümü" seçildiğinde company user da tüm şirket datasını görebilir
+    
+    return Math.ceil(filteredCustomers.length / itemsPerPage)
   }
   
   const goToPage = (page: number) => {
@@ -311,7 +345,7 @@ export default function CustomersPage() {
         type: 'under_discussion',
         label: 'Görüşülüyor',
         color: 'bg-blue-100 text-blue-800',
-        icon: '🔵'
+        icon: '�'
       }
     }
     
@@ -320,29 +354,40 @@ export default function CustomersPage() {
       type: 'not_contacted',
       label: 'Görüşülmedi',
       color: 'bg-yellow-100 text-yellow-800',
-      icon: '🟡'
+      icon: '�'
     }
   }
 
   // Stats hesaplama - ADIM 7.2 güncellemesi
   const getUpdatedStats = () => {
-    const attending = customers.filter(c => c.attending_fair === true).length
-    const notAttending = customers.filter(c => c.attending_fair === false).length
-    const underDiscussion = customers.filter(c => 
+    const allCustomers = customers;
+    
+    // "Tümü" için tüm şirket datası
+    const total = allCustomers.length;
+    
+    // Diğer statlar için company user ise sadece atanan firmalar, company admin ise tüm firmalar
+    let statsCustomers = allCustomers;
+    if (profile?.role === 'company_user') {
+      statsCustomers = allCustomers.filter(c => c.assigned_user_id === profile.id);
+    }
+    
+    const attending = statsCustomers.filter(c => c.attending_fair === true).length
+    const notAttending = statsCustomers.filter(c => c.attending_fair === false).length
+    const underDiscussion = statsCustomers.filter(c => 
       (c.attending_fair === null || c.attending_fair === undefined) && 
       c.notes && c.notes.trim().length > 0
     ).length
-    const notContacted = customers.filter(c => 
+    const notContacted = statsCustomers.filter(c => 
       (c.attending_fair === null || c.attending_fair === undefined) && 
       (!c.notes || c.notes.trim().length === 0)
     ).length
     
     return {
-      total: customers.length,
-      attendingFair: attending,
-      notAttendingFair: notAttending,
-      underDiscussion: underDiscussion,
-      notContacted: notContacted
+      total: total, // Her zaman tüm firma datası
+      attendingFair: attending, // Company user için sadece atanan firmalar
+      notAttendingFair: notAttending, // Company user için sadece atanan firmalar
+      underDiscussion: underDiscussion, // Company user için sadece atanan firmalar
+      notContacted: notContacted // Company user için sadece atanan firmalar
     }
   }
   
@@ -653,11 +698,72 @@ export default function CustomersPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>🟢 Fuara Katılan: {getUpdatedStats().attendingFair}</span>
-                  <span>🔴 Fuara Katılmayan: {getUpdatedStats().notAttendingFair}</span>
-                  <span>🔵 Görüşülüyor: {getUpdatedStats().underDiscussion}</span>
-                  <span>🟡 Görüşülmedi: {getUpdatedStats().notContacted}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    onClick={() => {
+                      setStatusFilter('all')
+                      setCurrentPage(1)
+                    }}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      statusFilter === 'all' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    📊 Tümü: {getUpdatedStats().total}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('attending_fair')
+                      setCurrentPage(1)
+                    }}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      statusFilter === 'attending_fair' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    🟢 Fuara Katılan: {getUpdatedStats().attendingFair}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('not_attending_fair')
+                      setCurrentPage(1)
+                    }}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      statusFilter === 'not_attending_fair' 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    🔴 Fuara Katılmayan: {getUpdatedStats().notAttendingFair}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('under_discussion')
+                      setCurrentPage(1)
+                    }}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      statusFilter === 'under_discussion' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    🔵 Görüşülüyor: {getUpdatedStats().underDiscussion}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('not_contacted')
+                      setCurrentPage(1)
+                    }}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      statusFilter === 'not_contacted' 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    🟡 Görüşülmedi: {getUpdatedStats().notContacted}
+                  </button>
                 </div>
               </div>
             </div>
