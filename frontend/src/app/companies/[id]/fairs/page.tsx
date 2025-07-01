@@ -263,7 +263,7 @@ export default function FairsPage() {
             
             {/* Breadcrumb */}
             <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-              Dashboard → Fuar Yönetimi {companyId && `(${companyId.toString().slice(0, 8)}...)`}
+              Dashboard → Fuar Yönetimi
             </div>
           </div>
         </div>

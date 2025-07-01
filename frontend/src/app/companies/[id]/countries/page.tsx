@@ -216,23 +216,24 @@ export default function CountriesPage() {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 gap-4">
             <div className="flex items-center">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="mr-4 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 ← Geri
               </button>
-              <h1 className="text-3xl font-bold text-gray-900">Ülke Yönetimi</h1>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Ülke Yönetimi</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Firma kartları için ülkeleri yönetin</p>
+              </div>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 flex items-center"
-            >
-              <span className="mr-2">+</span>
-              Yeni Ülke Ekle
-            </button>
+            
+            {/* Breadcrumb */}
+            <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+              Dashboard → Ülke Yönetimi
+            </div>
           </div>
         </div>
       </div>
@@ -240,41 +241,26 @@ export default function CountriesPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-teal-500 rounded-md flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">🌍</span>
-                    </div>
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Toplam Ülke
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {countries.length}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
+          
+          {/* Stats Bar */}
+          <div className="bg-white rounded-lg shadow mb-6 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">Ülke Listesi</h2>
+                <p className="text-sm text-gray-500">Toplam {countries.length} ülke</p>
               </div>
+
+              <button 
+                className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm sm:text-base"
+                onClick={() => setShowCreateModal(true)}
+              >
+                + Yeni Ülke Ekle
+              </button>
             </div>
           </div>
 
           {/* Countries List */}
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Ülke Listesi
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Şirketinize ait ülkeleri yönetin
-              </p>
-            </div>
             
             {countries.length === 0 ? (
               <div className="text-center py-12">

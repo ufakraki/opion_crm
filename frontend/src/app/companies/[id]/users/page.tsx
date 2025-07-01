@@ -169,6 +169,10 @@ export default function CompanyUsersPage() {
               <h1 className="text-xl font-semibold text-gray-900">Şirket Kullanıcıları</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Breadcrumb */}
+              <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                Dashboard → Kullanıcı Yönetimi
+              </div>
               <span className="text-sm text-gray-600">
                 {profile?.full_name} ({profile?.role})
               </span>

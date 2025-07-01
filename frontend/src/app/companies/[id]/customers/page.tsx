@@ -562,7 +562,7 @@ export default function CustomersPage() {
             
             {/* Breadcrumb */}
             <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-              Dashboard → Firma Kartları {companyId && `(${companyId.toString().slice(0, 8)}...)`}
+              Dashboard → Firma Kartları
             </div>
           </div>
         </div>
