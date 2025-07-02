@@ -25,6 +25,23 @@ export default function CustomersPage() {
   const params = useParams()
   const companyId = params.id
   
+  // Debounce hook for performance
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value)
+      }, delay)
+      
+      return () => {
+        clearTimeout(handler)
+      }
+    }, [value, delay])
+    
+    return debouncedValue
+  }
+  
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [customers, setCustomers] = useState<CustomerCompany[]>([])
@@ -88,6 +105,10 @@ export default function CustomersPage() {
   
   // Filtreleme state
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState<string>('')
+  const [sectorFilter, setSectorFilter] = useState<string>('all')
+  const [countryFilter, setCountryFilter] = useState<string>('all')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300) // 300ms debounce
   
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -158,6 +179,12 @@ export default function CustomersPage() {
 
     getProfile()
   }, [router, companyId])
+  
+  // Arama değiştiğinde sayfa 1'e dön
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchTerm, statusFilter, sectorFilter, countryFilter])
+  
   // Customer verilerini getir
   async function fetchCustomerData(companyId: string) {
     try {
@@ -265,8 +292,31 @@ export default function CustomersPage() {
     // Önce filtreleme yap
     let filteredCustomers = customers;
     
+    // Arama filtresi (minimum 3 karakter - sadece firma adı)
+    if (debouncedSearchTerm.length >= 3) {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        return customer.name?.toLowerCase().includes(searchLower);
+      });
+    }
+    
+    // Sektör filtresi
+    if (sectorFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.sector_id === sectorFilter;
+      });
+    }
+    
+    // Ülke filtresi  
+    if (countryFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.country_id === countryFilter;
+      });
+    }
+    
+    // Status filtresi
     if (statusFilter !== 'all') {
-      filteredCustomers = customers.filter(customer => {
+      filteredCustomers = filteredCustomers.filter(customer => {
         // Company user sadece kendi atanan firmalarını görsün (filtrelerde)
         if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
           return false;
@@ -288,8 +338,31 @@ export default function CustomersPage() {
     // Filtrelenmiş veriye göre sayfa sayısı hesapla
     let filteredCustomers = customers;
     
+    // Arama filtresi (minimum 3 karakter - sadece firma adı)
+    if (debouncedSearchTerm.length >= 3) {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        return customer.name?.toLowerCase().includes(searchLower);
+      });
+    }
+    
+    // Sektör filtresi
+    if (sectorFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.sector_id === sectorFilter;
+      });
+    }
+    
+    // Ülke filtresi  
+    if (countryFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.country_id === countryFilter;
+      });
+    }
+    
+    // Status filtresi
     if (statusFilter !== 'all') {
-      filteredCustomers = customers.filter(customer => {
+      filteredCustomers = filteredCustomers.filter(customer => {
         if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
           return false;
         }
@@ -360,35 +433,57 @@ export default function CustomersPage() {
 
   // Stats hesaplama - ADIM 7.2 güncellemesi
   const getUpdatedStats = () => {
+    // Stat barı her zaman tüm şirket datasına göre hesaplanır
+    // Filtreleme sadece listeyi etkiler, stat barını etkilemez
     const allCustomers = customers;
     
-    // "Tümü" için tüm şirket datası
-    const total = allCustomers.length;
-    
-    // Diğer statlar için company user ise sadece atanan firmalar, company admin ise tüm firmalar
-    let statsCustomers = allCustomers;
-    if (profile?.role === 'company_user') {
-      statsCustomers = allCustomers.filter(c => c.assigned_user_id === profile.id);
-    }
-    
-    const attending = statsCustomers.filter(c => c.attending_fair === true).length
-    const notAttending = statsCustomers.filter(c => c.attending_fair === false).length
-    const underDiscussion = statsCustomers.filter(c => 
+    const attending = allCustomers.filter(c => c.attending_fair === true).length
+    const notAttending = allCustomers.filter(c => c.attending_fair === false).length
+    const underDiscussion = allCustomers.filter(c => 
       (c.attending_fair === null || c.attending_fair === undefined) && 
       c.notes && c.notes.trim().length > 0
     ).length
-    const notContacted = statsCustomers.filter(c => 
+    const notContacted = allCustomers.filter(c => 
       (c.attending_fair === null || c.attending_fair === undefined) && 
       (!c.notes || c.notes.trim().length === 0)
     ).length
     
     return {
-      total: total, // Her zaman tüm firma datası
-      attendingFair: attending, // Company user için sadece atanan firmalar
-      notAttendingFair: notAttending, // Company user için sadece atanan firmalar
-      underDiscussion: underDiscussion, // Company user için sadece atanan firmalar
-      notContacted: notContacted // Company user için sadece atanan firmalar
+      total: allCustomers.length,
+      attendingFair: attending,
+      notAttendingFair: notAttending,
+      underDiscussion: underDiscussion,
+      notContacted: notContacted
     }
+  }
+  
+  // Filtrelenmiş toplam sayısını hesapla (arama, sektör, ülke filtrelerine göre)
+  const getFilteredTotal = () => {
+    let filteredCustomers = customers;
+    
+    // Arama filtresi (minimum 3 karakter - sadece firma adı)
+    if (debouncedSearchTerm.length >= 3) {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        return customer.name?.toLowerCase().includes(searchLower);
+      });
+    }
+    
+    // Sektör filtresi
+    if (sectorFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.sector_id === sectorFilter;
+      });
+    }
+    
+    // Ülke filtresi  
+    if (countryFilter !== 'all') {
+      filteredCustomers = filteredCustomers.filter(customer => {
+        return customer.country_id === countryFilter;
+      });
+    }
+    
+    return filteredCustomers.length;
   }
   
   // Permission helper functions - ADIM 7.5
@@ -619,24 +714,62 @@ export default function CustomersPage() {
           
           {/* Search & Actions Bar */}
           <div className="bg-white rounded-lg shadow mb-6 p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+            <div className="flex flex-col lg:flex-row gap-4 sm:items-center sm:justify-between">
               
-              {/* Search Box */}
-              <div className="flex-1 max-w-md">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+              {/* Search & Filter Group */}
+              <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                {/* Search Box */}
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Firma adı ile arama yapın..."
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Firma adı, sektör veya telefon ile arama yapın..."
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    disabled
-                  />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">(Arama özelliği yakında aktif olacak)</p>
+
+                {/* Filter Dropdowns */}
+                <div className="flex gap-2">
+                  {/* Sektör Dropdown */}
+                  <div className="min-w-[160px]">
+                    <select
+                      value={sectorFilter}
+                      onChange={(e) => setSectorFilter(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="all">🏢 Tüm Sektörler</option>
+                      {sectors.map((sector) => (
+                        <option key={sector.id} value={sector.id}>
+                          {sector.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Ülke Dropdown */}
+                  <div className="min-w-[160px]">
+                    <select
+                      value={countryFilter}
+                      onChange={(e) => setCountryFilter(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="all">🌍 Tüm Ülkeler</option>
+                      {countries.map((country) => (
+                        <option key={country.id} value={country.id}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -691,7 +824,13 @@ export default function CustomersPage() {
             <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Toplam: {getUpdatedStats().total} firma kartı</span>
+                  <span className="font-medium">
+                    {debouncedSearchTerm.length >= 3 || sectorFilter !== 'all' || countryFilter !== 'all' ? (
+                      <>Filtrelenmiş: {getFilteredTotal()}/{getUpdatedStats().total} firma kartı</>
+                    ) : (
+                      <>Toplam: {getUpdatedStats().total} firma kartı</>
+                    )}
+                  </span>
                   {customers.length > itemsPerPage && (
                     <span className="ml-2 text-gray-500">
                       (Sayfa {currentPage}/{getTotalPages()})
