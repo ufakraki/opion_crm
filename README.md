@@ -98,6 +98,12 @@ Opion CRM, Altaion Interactive tarafından geliştirilen modern, yüksek perform
 - İşlemlerden sonra gerçek zamanlı veri güncellemeleri
 - Renk kodlaması ile sezgisel durum rozet sistemi
 
+### ✅ **Güvenlik ve RLS (Row Level Security)**
+- PostgreSQL RLS ile veritabanı seviyesinde güvenlik
+- Company admin tam CRUD yetkileri (CREATE, READ, UPDATE, DELETE)
+- Company user kısıtlı yetkiler (sadece atanan firmaları düzenleyebilir)
+- Frontend + Backend çift güvenlik katmanı
+
 ## Veritabanı Şeması
 
 Uygulama, aşağıdaki ana tablolarla Supabase üzerinden iyi yapılandırılmış bir PostgreSQL veritabanı kullanır:
