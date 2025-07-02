@@ -15,6 +15,7 @@ import {
   getFairs,
   getCustomerCompanyFairs,
   CustomerCompany,
+  CustomerCompanyFilters,
   Sector,
   Country,
   Fair
@@ -46,6 +47,7 @@ export default function CustomersPage() {
   const [profile, setProfile] = useState<any>(null)
   const [customers, setCustomers] = useState<CustomerCompany[]>([])
   const [stats, setStats] = useState({ total: 0, attendingFair: 0, notAttendingFair: 0, underDiscussion: 0 })
+  const [totalCustomersCount, setTotalCustomersCount] = useState(0) // Gerçek toplam firma sayısı
   const [companyUsers, setCompanyUsers] = useState<any[]>([])
   const [sectors, setSectors] = useState<Sector[]>([])
   const [countries, setCountries] = useState<Country[]>([])
@@ -185,14 +187,30 @@ export default function CustomersPage() {
     setCurrentPage(1)
   }, [debouncedSearchTerm, statusFilter, sectorFilter, countryFilter])
   
-  // Customer verilerini getir
+  // Filtreler değiştiğinde backend'den yeni veri çek
+  useEffect(() => {
+    if (companyId) {
+      fetchCustomerData(companyId as string);
+    }
+  }, [debouncedSearchTerm, sectorFilter, countryFilter, currentPage, companyId])
+  
+  // Customer verilerini getir - Backend filtreleme ile
   async function fetchCustomerData(companyId: string) {
     try {
       console.log('🔄 Fetching customer data for company:', companyId)
       
+      // Filtreleme parametrelerini hazırla
+      const filters: CustomerCompanyFilters = {
+        searchTerm: debouncedSearchTerm.length >= 3 ? debouncedSearchTerm : undefined,
+        sectorId: sectorFilter !== 'all' ? sectorFilter : undefined,
+        countryId: countryFilter !== 'all' ? countryFilter : undefined,
+        page: currentPage,
+        limit: itemsPerPage
+      };
+      
       // Customer companies ve stats'ı paralel olarak getir
       const [customersResult, statsResult] = await Promise.all([
-        getCustomerCompanies(companyId),
+        getCustomerCompanies(companyId, filters),
         getCustomerCompaniesStats(companyId)
       ])
       
@@ -201,6 +219,7 @@ export default function CustomersPage() {
       } else {
         console.log('✅ Customers fetched successfully:', customersResult.data)
         setCustomers(customersResult.data)
+        setTotalCustomersCount(customersResult.totalCount || 0) // Toplam sayıyı set et
       }
       
       if (statsResult.error) {
@@ -289,34 +308,12 @@ export default function CustomersPage() {
   
   // Pagination helper functions
   const getPaginatedCustomers = () => {
-    // Önce filtreleme yap
+    // Backend'den zaten filtrelenmiş ve paginated veri geliyor
     let filteredCustomers = customers;
     
-    // Arama filtresi (minimum 3 karakter - sadece firma adı)
-    if (debouncedSearchTerm.length >= 3) {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        const searchLower = debouncedSearchTerm.toLowerCase();
-        return customer.name?.toLowerCase().includes(searchLower);
-      });
-    }
-    
-    // Sektör filtresi
-    if (sectorFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.sector_id === sectorFilter;
-      });
-    }
-    
-    // Ülke filtresi  
-    if (countryFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.country_id === countryFilter;
-      });
-    }
-    
-    // Status filtresi
+    // Sadece status filtresi frontend'de uygulanıyor (stat bar için)
     if (statusFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
+      filteredCustomers = customers.filter(customer => {
         // Company user sadece kendi atanan firmalarını görsün (filtrelerde)
         if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
           return false;
@@ -328,51 +325,13 @@ export default function CustomersPage() {
     }
     // "Tümü" seçildiğinde company user da tüm şirket datasını görebilir
     
-    // Sonra pagination yap
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredCustomers.slice(startIndex, endIndex)
+    // Backend'den zaten paginated veri geldiği için slice'a gerek yok
+    return filteredCustomers;
   }
   
   const getTotalPages = () => {
-    // Filtrelenmiş veriye göre sayfa sayısı hesapla
-    let filteredCustomers = customers;
-    
-    // Arama filtresi (minimum 3 karakter - sadece firma adı)
-    if (debouncedSearchTerm.length >= 3) {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        const searchLower = debouncedSearchTerm.toLowerCase();
-        return customer.name?.toLowerCase().includes(searchLower);
-      });
-    }
-    
-    // Sektör filtresi
-    if (sectorFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.sector_id === sectorFilter;
-      });
-    }
-    
-    // Ülke filtresi  
-    if (countryFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.country_id === countryFilter;
-      });
-    }
-    
-    // Status filtresi
-    if (statusFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
-          return false;
-        }
-        const status = getCustomerStatus(customer);
-        return status.type === statusFilter;
-      });
-    }
-    // "Tümü" seçildiğinde company user da tüm şirket datasını görebilir
-    
-    return Math.ceil(filteredCustomers.length / itemsPerPage)
+    // Backend pagination kullanıldığı için toplam sayıdan hesapla
+    return Math.max(1, Math.ceil(totalCustomersCount / itemsPerPage))
   }
   
   const goToPage = (page: number) => {
@@ -457,33 +416,21 @@ export default function CustomersPage() {
     }
   }
   
-  // Filtrelenmiş toplam sayısını hesapla (arama, sektör, ülke filtrelerine göre)
+  // Filtrelenmiş toplam sayısını hesapla (artık backend'den geliyor)
   const getFilteredTotal = () => {
-    let filteredCustomers = customers;
-    
-    // Arama filtresi (minimum 3 karakter - sadece firma adı)
-    if (debouncedSearchTerm.length >= 3) {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        const searchLower = debouncedSearchTerm.toLowerCase();
-        return customer.name?.toLowerCase().includes(searchLower);
-      });
+    // Backend filtreleme kullanıldığı için, mevcut customers array'i filtrelenmiş veridir
+    // Sadece status filtresi frontend'de uygulanıyor
+    if (statusFilter !== 'all') {
+      return customers.filter(customer => {
+        if (profile?.role === 'company_user' && customer.assigned_user_id !== profile.id) {
+          return false;
+        }
+        const status = getCustomerStatus(customer);
+        return status.type === statusFilter;
+      }).length;
     }
     
-    // Sektör filtresi
-    if (sectorFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.sector_id === sectorFilter;
-      });
-    }
-    
-    // Ülke filtresi  
-    if (countryFilter !== 'all') {
-      filteredCustomers = filteredCustomers.filter(customer => {
-        return customer.country_id === countryFilter;
-      });
-    }
-    
-    return filteredCustomers.length;
+    return customers.length;
   }
   
   // Permission helper functions - ADIM 7.5
@@ -826,9 +773,9 @@ export default function CustomersPage() {
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">
                     {debouncedSearchTerm.length >= 3 || sectorFilter !== 'all' || countryFilter !== 'all' ? (
-                      <>Filtrelenmiş: {getFilteredTotal()}/{getUpdatedStats().total} firma kartı</>
+                      <>Filtrelenmiş: {getFilteredTotal()}/{totalCustomersCount} firma kartı</>
                     ) : (
-                      <>Toplam: {getUpdatedStats().total} firma kartı</>
+                      <>Toplam: {totalCustomersCount} firma kartı</>
                     )}
                   </span>
                   {customers.length > itemsPerPage && (
@@ -849,7 +796,7 @@ export default function CustomersPage() {
                         : 'text-gray-500 hover:bg-gray-100'
                     }`}
                   >
-                    📊 Tümü: {getUpdatedStats().total}
+                    📊 Tümü: {totalCustomersCount}
                   </button>
                   <button
                     onClick={() => {

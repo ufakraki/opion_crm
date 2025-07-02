@@ -612,6 +612,15 @@ export const deleteCountry = async (id: string) => {
 // CUSTOMER COMPANIES (FIRMA KARTLARI) TYPES & FUNCTIONS
 // ========================
 
+// Filtreleme parametreleri için interface
+export interface CustomerCompanyFilters {
+    searchTerm?: string;
+    sectorId?: string;
+    countryId?: string;
+    page?: number;
+    limit?: number;
+}
+
 // TypeScript interface for Customer Company
 export interface CustomerCompany {
     id?: string;
@@ -712,28 +721,67 @@ export const createCustomerCompany = async (customerData: CustomerCompany) => {
 };
 
 // Get customer companies for a specific company
-export const getCustomerCompanies = async (companyId: string) => {
-    try {        console.log('Fetching customer companies for company:', companyId);
-          const { data, error } = await supabase
+export const getCustomerCompanies = async (companyId: string, filters?: CustomerCompanyFilters) => {
+    try {
+        console.log('Fetching customer companies for company:', companyId, 'with filters:', filters);
+        
+        // Önce toplam sayıyı al (filtresiz)
+        const { count: totalCount, error: countError } = await supabase
+            .from('customer_companies')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', companyId);
+
+        if (countError) {
+            console.error('Error fetching total count:', countError);
+        }
+        
+        // Sonra filtrelenmiş veriyi al
+        let query = supabase
             .from('customer_companies')
             .select(`
                 *,
                 assigned_user:profiles!assigned_user_id(id, full_name, email, username),
                 creator:profiles!created_by(id, full_name, email, username)
             `)
-            .eq('company_id', companyId)
+            .eq('company_id', companyId);
+
+        // Arama filtresi
+        if (filters?.searchTerm && filters.searchTerm.length >= 3) {
+            query = query.ilike('name', `%${filters.searchTerm}%`);
+        }
+
+        // Sektör filtresi
+        if (filters?.sectorId && filters.sectorId !== 'all') {
+            query = query.eq('sector_id', filters.sectorId);
+        }
+
+        // Ülke filtresi
+        if (filters?.countryId && filters.countryId !== 'all') {
+            query = query.eq('country_id', filters.countryId);
+        }
+
+        // Pagination
+        const page = filters?.page || 1;
+        const limit = filters?.limit || 25;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit - 1;
+        
+        query = query
+            .range(startIndex, endIndex)
             .order('created_at', { ascending: false });
+            
+        const { data, error } = await query;
             
         if (error) {
             console.error('Error fetching customer companies:', error);
-            return { data: [], error };
+            return { data: [], error, totalCount: totalCount || 0 };
         }
         
-        console.log(`Found ${data?.length || 0} customer companies`);
-        return { data: data || [], error: null };
+        console.log(`Found ${data?.length || 0} customer companies (filtered), total: ${totalCount}`);
+        return { data: data || [], error: null, totalCount: totalCount || 0 };
     } catch (error) {
         console.error('Unexpected error fetching customer companies:', error);
-        return { data: [], error };
+        return { data: [], error, totalCount: 0 };
     }
 };
 
